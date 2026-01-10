@@ -5,6 +5,8 @@ import { BookingHeader } from "./header";
 import { ConfirmButton } from "./confirm-button";
 import { ChatButton } from "./chat-button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ interface PatientDetailsProps {
   isUnder16?: boolean;
   onContinue: (details: PatientDetails) => void;
   onBack: () => void;
+  standalone?: boolean;
 }
 
 export interface PatientDetails {
@@ -41,6 +44,7 @@ export function PatientDetails({
   isUnder16,
   onContinue,
   onBack,
+  standalone = true,
 }: PatientDetailsProps) {
   const [details, setDetails] = useState<PatientDetails>({
     name: "",
@@ -85,13 +89,13 @@ export function PatientDetails({
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background pb-32">
-      <div className="px-4">
+  const content = (
+    <>
+      <div className={standalone ? "px-4" : ""}>
         <BookingHeader title="Patient Details" onBack={onBack} />
       </div>
 
-      <div className="px-4 space-y-6">
+      <div className={standalone ? "px-4 space-y-6" : "space-y-6"}>
         {/* Selected Date/Time */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">
@@ -114,28 +118,30 @@ export function PatientDetails({
         {/* Under 16 Guardian Fields */}
         {isUnder16 && (
           <div className="space-y-4 p-4 bg-accent/30 rounded-xl border border-border">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label htmlFor="guardian-name" className="text-sm font-medium text-foreground">
                   Name of Adult with Parental Responsibility
                   <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
+                  id="guardian-name"
                   value={details.guardianName}
                   onChange={(e) => handleChange("guardianName", e.target.value)}
+                  aria-required="true"
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label htmlFor="patient-age" className="text-sm font-medium text-foreground">
                   Age of Patient<span className="text-destructive">*</span>
                 </label>
                 <Select
                   value={details.patientAge}
                   onValueChange={(value) => handleChange("patientAge", value)}
                 >
-                  <SelectTrigger className="w-full px-4 py-3 h-auto bg-card border border-border rounded-xl text-foreground">
+                  <SelectTrigger id="patient-age" aria-required="true" className="w-full px-4 py-3 h-auto bg-card border border-border rounded-xl text-foreground">
                     <SelectValue placeholder="Select age" />
                   </SelectTrigger>
                   <SelectContent>
@@ -170,26 +176,30 @@ export function PatientDetails({
         )}
 
         {/* Name and Email */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="patient-name" className="text-sm font-medium text-foreground">
               Patient Name<span className="text-destructive">*</span>
             </label>
             <input
               type="text"
+              id="patient-name"
               value={details.name}
               onChange={(e) => handleChange("name", e.target.value)}
+              aria-required="true"
               className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="patient-email" className="text-sm font-medium text-foreground">
               Your Email<span className="text-destructive">*</span>
             </label>
             <input
               type="email"
+              id="patient-email"
               value={details.email}
               onChange={(e) => handleChange("email", e.target.value)}
+              aria-required="true"
               className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -197,24 +207,27 @@ export function PatientDetails({
 
         {/* Address 1 */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
+          <label htmlFor="patient-address" className="text-sm font-medium text-foreground">
             Address 1<span className="text-destructive">*</span>
           </label>
           <input
             type="text"
+            id="patient-address"
             value={details.address1}
             onChange={(e) => handleChange("address1", e.target.value)}
+            aria-required="true"
             className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         {/* Address 2 */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
+          <label htmlFor="patient-address2" className="text-sm font-medium text-foreground">
             Address 2
           </label>
           <input
             type="text"
+            id="patient-address2"
             value={details.address2}
             onChange={(e) => handleChange("address2", e.target.value)}
             className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -222,28 +235,32 @@ export function PatientDetails({
         </div>
 
         {/* City and Post Code */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="patient-city" className="text-sm font-medium text-foreground">
               City<span className="text-destructive">*</span>
             </label>
             <input
               type="text"
+              id="patient-city"
               value={details.city}
               onChange={(e) => handleChange("city", e.target.value)}
+              aria-required="true"
               className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="patient-postcode" className="text-sm font-medium text-foreground">
               Post Code<span className="text-destructive">*</span>
             </label>
             <input
               type="text"
+              id="patient-postcode"
               value={details.postCode}
               onChange={(e) =>
                 handleChange("postCode", e.target.value.toUpperCase())
               }
+              aria-required="true"
               className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -251,13 +268,15 @@ export function PatientDetails({
 
         {/* Phone */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
+          <label htmlFor="patient-phone" className="text-sm font-medium text-foreground">
             Phone<span className="text-destructive">*</span>
           </label>
           <input
             type="tel"
+            id="patient-phone"
             value={details.phone}
             onChange={(e) => handleChange("phone", e.target.value)}
+            aria-required="true"
             className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -275,13 +294,33 @@ export function PatientDetails({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
-        <ConfirmButton onClick={handleSubmit} disabled={!isFormValid}>
-          Continue to Payment
-        </ConfirmButton>
+      <div className={cn(
+        "p-4 bg-background border-t border-border",
+        standalone ? "fixed bottom-0 left-0 right-0 lg:max-w-2xl" : "mt-6"
+      )}>
+        <div className="flex flex-col lg:flex-row gap-3">
+          {!standalone && (
+            <Button variant="outline" onClick={onBack} className="w-full lg:w-auto lg:min-w-[120px] py-4 h-auto rounded-2xl">
+              Back
+            </Button>
+          )}
+          <ConfirmButton onClick={handleSubmit} disabled={!isFormValid}>
+            Continue to Payment
+          </ConfirmButton>
+        </div>
       </div>
 
       <ChatButton />
+    </>
+  );
+
+  if (!standalone) {
+    return content;
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-32">
+      {content}
     </div>
   );
 }

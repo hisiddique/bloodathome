@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\ChatMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,7 +12,14 @@ class ChatMessageController extends Controller
     {
         $this->authorize('view', $booking);
 
-        $messages = $booking->chatMessages()
+        // Get or create conversation for this booking
+        $conversation = $booking->conversation()->firstOrCreate([
+            'user_id' => $booking->user_id,
+            'provider_id' => $booking->provider_id,
+            'is_active' => true,
+        ]);
+
+        $messages = $conversation->messages()
             ->with('sender')
             ->orderBy('created_at', 'asc')
             ->get();
@@ -29,11 +35,17 @@ class ChatMessageController extends Controller
 
         $validated = $request->validate([
             'message' => 'required|string|max:1000',
-            'sender_type' => 'required|in:patient,phlebotomist',
+            'sender_type' => 'required|in:patient,provider',
         ]);
 
-        $message = ChatMessage::create([
-            'booking_id' => $booking->id,
+        // Get or create conversation for this booking
+        $conversation = $booking->conversation()->firstOrCreate([
+            'user_id' => $booking->user_id,
+            'provider_id' => $booking->provider_id,
+            'is_active' => true,
+        ]);
+
+        $message = $conversation->messages()->create([
             'sender_id' => auth()->id(),
             'sender_type' => $validated['sender_type'],
             'message' => $validated['message'],

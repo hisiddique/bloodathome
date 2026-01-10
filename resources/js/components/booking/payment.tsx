@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { CreditCard, Lock, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { useRegion } from "@/contexts/region-context";
+import { formatCurrency } from "@/lib/format";
 import { ConfirmButton } from "./confirm-button";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { type Phlebotomist } from "@/components/phlebotomist/card";
 
 interface PaymentProps {
@@ -10,6 +15,7 @@ interface PaymentProps {
   timeSlot: string;
   onPaymentComplete: () => void;
   onBack: () => void;
+  standalone?: boolean;
 }
 
 export function Payment({
@@ -18,7 +24,10 @@ export function Payment({
   timeSlot,
   onPaymentComplete,
   onBack,
+  standalone = true,
 }: PaymentProps) {
+  const { t } = useTranslation();
+  const { region } = useRegion();
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -65,12 +74,12 @@ export function Payment({
     cvv.length >= 3;
 
   return (
-    <div className="min-h-screen bg-background pb-32 animate-fade-in">
-      <div className="px-4 space-y-6">
+    <div className="pb-32 animate-fade-in">
+      <div className="space-y-6">
         {/* Order Summary */}
         <div className="bg-card border border-border rounded-3xl p-5">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
-            Order Summary
+            {t('Order Summary')}
           </h2>
 
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
@@ -82,32 +91,32 @@ export function Payment({
             <div className="flex-1">
               <p className="font-medium text-foreground">{phlebotomist.name}</p>
               <p className="text-sm text-muted-foreground">
-                Blood Draw Service
+                {t('Blood Draw Service')}
               </p>
             </div>
           </div>
 
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Date</span>
+              <span className="text-muted-foreground">{t('Date')}</span>
               <span className="text-foreground">
                 {format(date, "EEE, MMM d")}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Time</span>
+              <span className="text-muted-foreground">{t('Time')}</span>
               <span className="text-foreground">{timeSlot}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Service Fee</span>
-              <span className="text-foreground">{phlebotomist.price}</span>
+              <span className="text-muted-foreground">{t('Service Fee')}</span>
+              <span className="text-foreground">{formatCurrency(phlebotomist.price, region)}</span>
             </div>
           </div>
 
           <div className="flex justify-between mt-4 pt-4 border-t border-border">
-            <span className="font-semibold text-foreground">Total</span>
+            <span className="font-semibold text-foreground">{t('Total')}</span>
             <span className="font-bold text-lg text-foreground">
-              {phlebotomist.price}
+              {formatCurrency(phlebotomist.price, region)}
             </span>
           </div>
         </div>
@@ -117,7 +126,7 @@ export function Payment({
           <div className="flex items-center gap-2">
             <Lock className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
-              Secure Payment
+              {t('Secure Payment')}
             </span>
           </div>
 
@@ -131,7 +140,7 @@ export function Payment({
                 onChange={(e) =>
                   setCardNumber(formatCardNumber(e.target.value))
                 }
-                placeholder="Card number"
+                placeholder={t('Card number')}
                 maxLength={19}
                 className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
@@ -144,7 +153,7 @@ export function Payment({
                 type="text"
                 value={cardName}
                 onChange={(e) => setCardName(e.target.value)}
-                placeholder="Cardholder name"
+                placeholder={t('Cardholder name')}
                 className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
@@ -157,7 +166,7 @@ export function Payment({
                   type="text"
                   value={expiry}
                   onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                  placeholder="MM/YY"
+                  placeholder={t('MM/YY')}
                   maxLength={5}
                   className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                 />
@@ -168,7 +177,7 @@ export function Payment({
                   type="text"
                   value={cvv}
                   onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
-                  placeholder="CVV"
+                  placeholder={t('CVV')}
                   maxLength={4}
                   className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                 />
@@ -177,24 +186,26 @@ export function Payment({
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            Your payment information is encrypted and secure
+            {t('Your payment information is encrypted and secure')}
           </p>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border space-y-2">
-        <ConfirmButton
-          onClick={handleSubmit}
-          disabled={!isFormValid || isProcessing}
-        >
-          {isProcessing ? "Processing..." : `Pay ${phlebotomist.price}`}
-        </ConfirmButton>
-        <button
-          onClick={onBack}
-          className="w-full py-3 rounded-2xl font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Back
-        </button>
+      <div className={cn(
+        "p-4 bg-background border-t border-border",
+        standalone ? "fixed bottom-0 left-0 right-0 lg:max-w-2xl" : "mt-6"
+      )}>
+        <div className="flex flex-col lg:flex-row gap-3">
+          <Button variant="outline" onClick={onBack} className="w-full lg:w-auto lg:min-w-[120px] py-4 h-auto rounded-2xl lg:order-first order-last">
+            {t('Back')}
+          </Button>
+          <ConfirmButton
+            onClick={handleSubmit}
+            disabled={!isFormValid || isProcessing}
+          >
+            {isProcessing ? t('Processing...') : t('Pay {{amount}}', { amount: formatCurrency(phlebotomist.price, region) })}
+          </ConfirmButton>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block access to sensitive files and directories
+    RewriteRule ^\.env - [F,L]
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^\.htaccess - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^package(-lock)?\.json$ - [F,L]
+    RewriteRule ^artisan$ - [F,L]
+    RewriteRule ^phpunit\.xml$ - [F,L]
+    RewriteRule ^vite\.config\.(js|ts)$ - [F,L]
+    RewriteRule ^tsconfig\.json$ - [F,L]
+    RewriteRule ^DEPLOYMENT\.md$ - [F,L]
+    RewriteRule ^storage/ - [F,L]
+    RewriteRule ^database/ - [F,L]
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^app/ - [F,L]
+    RewriteRule ^bootstrap/ - [F,L]
+    RewriteRule ^resources/ - [F,L]
+    RewriteRule ^routes/ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^lang/ - [F,L]
+    RewriteRule ^node_modules/ - [F,L]
+    RewriteRule ^tests/ - [F,L]
+    RewriteRule ^docs/ - [F,L]
+
+    # Route everything else to public folder
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

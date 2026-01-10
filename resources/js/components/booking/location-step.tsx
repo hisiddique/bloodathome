@@ -9,13 +9,15 @@ import { TimeOfDaySelector, type TimeOfDay } from "./time-of-day-selector";
 import { TimeSlotGrid } from "./time-slot-grid";
 import { ConfirmButton } from "./confirm-button";
 import { ChatButton } from "./chat-button";
+import { cn } from "@/lib/utils";
 
 interface LocationStepProps {
   onContinue: (address: string, date: Date, timeSlot: string) => void;
   onBack: () => void;
+  standalone?: boolean;
 }
 
-export function LocationStep({ onContinue, onBack }: LocationStepProps) {
+export function LocationStep({ onContinue, onBack, standalone = true }: LocationStepProps) {
   const { mapboxToken } = usePage<{ mapboxToken?: string }>().props;
   const [address, setAddress] = useState("");
   const [isLocating, setIsLocating] = useState(false);
@@ -72,13 +74,13 @@ export function LocationStep({ onContinue, onBack }: LocationStepProps) {
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-background pb-32">
-      <div className="px-4">
+  const content = (
+    <>
+      <div className={standalone ? "px-4" : ""}>
         <BookingHeader title="Book Your Appointment" onBack={onBack} />
       </div>
 
-      <div className="px-4 space-y-6">
+      <div className={standalone ? "px-4 space-y-6" : "space-y-6"}>
         <LocationMap
           center={userLocation}
           zoom={13}
@@ -112,7 +114,10 @@ export function LocationStep({ onContinue, onBack }: LocationStepProps) {
         />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+      <div className={cn(
+        "p-4 bg-background border-t border-border",
+        standalone ? "fixed bottom-0 left-0 right-0 lg:max-w-2xl" : "mt-6"
+      )}>
         <ConfirmButton
           onClick={handleContinue}
           disabled={!address || !selectedSlot}
@@ -122,6 +127,16 @@ export function LocationStep({ onContinue, onBack }: LocationStepProps) {
       </div>
 
       <ChatButton />
+    </>
+  );
+
+  if (!standalone) {
+    return content;
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-32">
+      {content}
     </div>
   );
 }

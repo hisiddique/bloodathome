@@ -1,7 +1,8 @@
 /.phpunit.cache
 /bootstrap/ssr
 /node_modules
-/public/build
+# NOTE: public/build/ is intentionally NOT ignored
+# Pre-built assets are committed for shared hosting deployment (no npm on server)
 /public/hot
 /public/storage
 /resources/js/actions

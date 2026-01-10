@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { router, Head } from "@inertiajs/react";
+import PublicLayout from "@/layouts/public-layout";
 import { BookingHeader } from "@/components/booking/header";
 import { ChatButton } from "@/components/booking/chat-button";
 import { BookingSuccess } from "@/components/booking/success";
@@ -7,17 +8,16 @@ import { LocationStep } from "@/components/booking/location-step";
 import { PhlebotomistSelection } from "@/components/booking/phlebotomist-selection";
 import { PatientDetails } from "@/components/booking/patient-details";
 import { Payment } from "@/components/booking/payment";
+import { StepSidebar, type BookingStep } from "@/components/booking/step-sidebar";
 import { type Phlebotomist } from "@/components/phlebotomist/card";
 import { toast } from "sonner";
-
-type BookingStep = "location" | "phlebotomist" | "details" | "payment" | "success";
 
 interface BookingProps {
   isUnder16?: boolean;
   mapboxToken?: string;
 }
 
-export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps) {
+function BookingPage({ isUnder16 = false, mapboxToken }: BookingProps) {
   const [step, setStep] = useState<BookingStep>("location");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -107,12 +107,36 @@ export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps
     router.visit("/");
   };
 
+  const handleStepClick = (targetStep: BookingStep) => {
+    // Only allow going back to previous steps
+    const stepOrder: BookingStep[] = ["location", "phlebotomist", "details", "payment", "success"];
+    const currentIndex = stepOrder.indexOf(step);
+    const targetIndex = stepOrder.indexOf(targetStep);
+
+    if (targetIndex < currentIndex) {
+      setStep(targetStep);
+    }
+  };
+
   // Location Step
   if (step === "location") {
     return (
       <>
         <Head title="Book Your Appointment" />
-        <LocationStep onContinue={handleLocationContinue} onBack={handleBack} />
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="lg:grid lg:grid-cols-[250px_1fr] lg:gap-8">
+              <StepSidebar currentStep={step} onStepClick={handleStepClick} />
+              <main className="max-w-2xl lg:mx-0 mx-auto">
+                <LocationStep
+                  onContinue={handleLocationContinue}
+                  onBack={handleBack}
+                  standalone={false}
+                />
+              </main>
+            </div>
+          </div>
+        </div>
       </>
     );
   }
@@ -122,12 +146,22 @@ export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps
     return (
       <>
         <Head title="Select Phlebotomist" />
-        <PhlebotomistSelection
-          date={selectedDate}
-          timeSlot={selectedSlot}
-          onContinue={handlePhlebotomistContinue}
-          onBack={handleBack}
-        />
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="lg:grid lg:grid-cols-[250px_1fr] lg:gap-8">
+              <StepSidebar currentStep={step} onStepClick={handleStepClick} />
+              <main className="max-w-2xl lg:mx-0 mx-auto">
+                <PhlebotomistSelection
+                  date={selectedDate}
+                  timeSlot={selectedSlot}
+                  onContinue={handlePhlebotomistContinue}
+                  onBack={handleBack}
+                  standalone={false}
+                />
+              </main>
+            </div>
+          </div>
+        </div>
       </>
     );
   }
@@ -137,13 +171,23 @@ export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps
     return (
       <>
         <Head title="Patient Details" />
-        <PatientDetails
-          date={selectedDate}
-          timeSlot={selectedSlot}
-          isUnder16={isUnder16}
-          onContinue={handleDetailsContinue}
-          onBack={handleBack}
-        />
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="lg:grid lg:grid-cols-[250px_1fr] lg:gap-8">
+              <StepSidebar currentStep={step} onStepClick={handleStepClick} />
+              <main className="max-w-2xl lg:mx-0 mx-auto">
+                <PatientDetails
+                  date={selectedDate}
+                  timeSlot={selectedSlot}
+                  isUnder16={isUnder16}
+                  onContinue={handleDetailsContinue}
+                  onBack={handleBack}
+                  standalone={false}
+                />
+              </main>
+            </div>
+          </div>
+        </div>
       </>
     );
   }
@@ -154,16 +198,27 @@ export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps
       <>
         <Head title="Payment" />
         <div className="min-h-screen bg-background">
-          <div className="px-4">
-            <BookingHeader title="Payment" onBack={handleBack} />
+          <div className="container mx-auto px-4 py-8">
+            <div className="lg:grid lg:grid-cols-[250px_1fr] lg:gap-8">
+              <StepSidebar currentStep={step} onStepClick={handleStepClick} />
+              <main className="max-w-2xl lg:mx-0 mx-auto">
+                <div className="lg:hidden">
+                  <BookingHeader title="Payment" onBack={handleBack} />
+                </div>
+                <div className="hidden lg:block mb-6">
+                  <h1 className="text-2xl font-semibold text-foreground">Payment</h1>
+                </div>
+                <Payment
+                  phlebotomist={selectedPhlebotomist}
+                  date={selectedDate}
+                  timeSlot={selectedSlot}
+                  onPaymentComplete={handlePaymentComplete}
+                  onBack={handleBack}
+                  standalone={false}
+                />
+              </main>
+            </div>
           </div>
-          <Payment
-            phlebotomist={selectedPhlebotomist}
-            date={selectedDate}
-            timeSlot={selectedSlot}
-            onPaymentComplete={handlePaymentComplete}
-            onBack={handleBack}
-          />
           <ChatButton />
         </div>
       </>
@@ -176,13 +231,20 @@ export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps
       <>
         <Head title="Booking Confirmed" />
         <div className="min-h-screen bg-background">
-          <BookingSuccess
-            date={selectedDate}
-            timeSlot={selectedSlot}
-            bookingId={bookingId}
-            phlebotomist={selectedPhlebotomist}
-            onDone={handleDone}
-          />
+          <div className="container mx-auto px-4 py-8">
+            <div className="lg:grid lg:grid-cols-[250px_1fr] lg:gap-8">
+              <StepSidebar currentStep={step} onStepClick={handleStepClick} />
+              <main className="max-w-2xl lg:mx-0 mx-auto">
+                <BookingSuccess
+                  date={selectedDate}
+                  timeSlot={selectedSlot}
+                  bookingId={bookingId}
+                  phlebotomist={selectedPhlebotomist}
+                  onDone={handleDone}
+                />
+              </main>
+            </div>
+          </div>
         </div>
       </>
     );
@@ -191,3 +253,7 @@ export default function Booking({ isUnder16 = false, mapboxToken }: BookingProps
   // Default fallback
   return null;
 }
+
+BookingPage.layout = (page: React.ReactNode) => <PublicLayout hideFooter>{page}</PublicLayout>;
+
+export default BookingPage;

@@ -1,13 +1,11 @@
-import { useState } from "react";
 import { Head } from "@inertiajs/react";
-import { Menu } from "lucide-react";
-import { PublicSidebar } from "@/components/public-sidebar";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import PublicLayout from "@/layouts/public-layout";
 
 const faqData = [
   {
@@ -65,33 +63,20 @@ const faqData = [
 ];
 
 export default function FAQ() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
     <>
       <Head title="FAQ - CQC Registration & Phlebotomists" />
 
       <div className="min-h-screen bg-background pb-8">
-        <PublicSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
-
-        <header className="flex items-center gap-4 py-4 px-4">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
-          >
-            <Menu className="w-6 h-6 text-foreground" />
-          </button>
-          <h1 className="text-lg font-semibold text-foreground flex-1 text-center pr-8">
-            FAQ
-          </h1>
-        </header>
-
         <div className="px-6 py-4">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-primary mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2 text-center">
+              FAQ
+            </h1>
+            <h2 className="text-lg font-semibold text-primary mb-2 text-center">
               CQC Registration & Phlebotomists
             </h2>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm text-center">
               Common questions about our verification process and legal requirements.
             </p>
           </div>
@@ -117,3 +102,5 @@ export default function FAQ() {
     </>
   );
 }
+
+FAQ.layout = (page: React.ReactNode) => <PublicLayout>{page}</PublicLayout>;

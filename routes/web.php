@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\BloodTestController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ChatMessageController;
-use App\Http\Controllers\LabController;
-use App\Http\Controllers\PhlebotomistController;
+use App\Http\Controllers\ClinicLocationController;
+use App\Http\Controllers\ProviderController;
+use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -16,15 +16,15 @@ Route::get('/', function () {
 })->name('home');
 
 // Public routes
-Route::get('/faq', fn() => Inertia::render('faq'))->name('faq');
-Route::get('/search', [PhlebotomistController::class, 'search'])->name('search.index');
-Route::get('/search/results', [PhlebotomistController::class, 'results'])->name('search.results');
-Route::get('/phlebotomist/{phlebotomist}', [PhlebotomistController::class, 'show'])->name('phlebotomist.show');
-Route::get('/become-phlebotomist', fn() => Inertia::render('become-phlebotomist'))->name('phlebotomist.register');
-Route::post('/become-phlebotomist', [PhlebotomistController::class, 'register'])->name('phlebotomist.store');
-Route::get('/blood-tests', [BloodTestController::class, 'index'])->name('blood-tests.index');
-Route::get('/labs', [LabController::class, 'index'])->name('labs.index');
-Route::get('/labs/{lab}', [LabController::class, 'show'])->name('labs.show');
+Route::get('/faq', fn () => Inertia::render('faq'))->name('faq');
+Route::get('/search', [ProviderController::class, 'search'])->name('search.index');
+Route::get('/search/results', [ProviderController::class, 'results'])->name('search.results');
+Route::get('/provider/{provider}', [ProviderController::class, 'show'])->name('provider.show');
+Route::get('/become-phlebotomist', fn () => Inertia::render('become-phlebotomist'))->name('phlebotomist.register');
+Route::post('/become-phlebotomist', [ProviderController::class, 'register'])->name('phlebotomist.store');
+Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+Route::get('/clinics', [ClinicLocationController::class, 'index'])->name('clinics.index');
+Route::get('/clinics/{clinicLocation}', [ClinicLocationController::class, 'show'])->name('clinics.show');
 
 // Booking routes
 Route::get('/booking', [BookingController::class, 'create'])->name('booking.create');

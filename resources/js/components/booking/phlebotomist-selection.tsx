@@ -5,6 +5,8 @@ import { BookingHeader } from "./header";
 import { ConfirmButton } from "./confirm-button";
 import { ChatButton } from "./chat-button";
 import { PhlebotomistCard, type Phlebotomist } from "@/components/phlebotomist/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Mock phlebotomists data - 5 closest
 const mockPhlebotomists: Phlebotomist[] = [
@@ -70,6 +72,7 @@ interface PhlebotomistSelectionProps {
   timeSlot: string;
   onContinue: (phlebotomist: Phlebotomist) => void;
   onBack: () => void;
+  standalone?: boolean;
 }
 
 export function PhlebotomistSelection({
@@ -77,6 +80,7 @@ export function PhlebotomistSelection({
   timeSlot,
   onContinue,
   onBack,
+  standalone = true,
 }: PhlebotomistSelectionProps) {
   const [selectedPhlebotomist, setSelectedPhlebotomist] =
     useState<Phlebotomist | null>(null);
@@ -93,13 +97,13 @@ export function PhlebotomistSelection({
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background pb-32">
-      <div className="px-4">
+  const content = (
+    <>
+      <div className={standalone ? "px-4" : ""}>
         <BookingHeader title="Choose a Phlebotomist" onBack={onBack} />
       </div>
 
-      <div className="px-4 space-y-4">
+      <div className={standalone ? "px-4 space-y-4" : "space-y-4"}>
         {/* Selected Date/Time Summary */}
         <div className="bg-accent/50 rounded-2xl p-4">
           <p className="text-sm text-muted-foreground mb-1">Your appointment</p>
@@ -126,13 +130,33 @@ export function PhlebotomistSelection({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
-        <ConfirmButton onClick={handleContinue} disabled={!selectedPhlebotomist}>
-          Continue with {selectedPhlebotomist?.name || "selection"}
-        </ConfirmButton>
+      <div className={cn(
+        "p-4 bg-background border-t border-border",
+        standalone ? "fixed bottom-0 left-0 right-0 lg:max-w-2xl" : "mt-6"
+      )}>
+        <div className="flex flex-col lg:flex-row gap-3">
+          {!standalone && (
+            <Button variant="outline" onClick={onBack} className="w-full lg:w-auto lg:min-w-[120px] py-4 h-auto rounded-2xl">
+              Back
+            </Button>
+          )}
+          <ConfirmButton onClick={handleContinue} disabled={!selectedPhlebotomist}>
+            Continue with {selectedPhlebotomist?.name || "selection"}
+          </ConfirmButton>
+        </div>
       </div>
 
       <ChatButton />
+    </>
+  );
+
+  if (!standalone) {
+    return content;
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-32">
+      {content}
     </div>
   );
 }

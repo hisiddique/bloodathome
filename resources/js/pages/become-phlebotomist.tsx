@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { router, Head, useForm } from "@inertiajs/react";
-import { User, Mail, Phone, MapPin, FileText, CheckCircle, Menu } from "lucide-react";
+import { User, Mail, Phone, MapPin, FileText, CheckCircle } from "lucide-react";
 import { ConfirmButton } from "@/components/booking/confirm-button";
-import { PublicSidebar } from "@/components/public-sidebar";
 import { toast } from "sonner";
+import PublicLayout from "@/layouts/public-layout";
 
 export default function BecomePhlebotomist() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
   const { data, setData, post, processing, errors } = useForm({
@@ -77,21 +76,10 @@ export default function BecomePhlebotomist() {
       <Head title="Become a Mobile Phlebotomist" />
 
       <div className="min-h-screen bg-background pb-8">
-        <PublicSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
-
-        <header className="flex items-center gap-4 py-4 px-4">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
-          >
-            <Menu className="w-6 h-6 text-foreground" />
-          </button>
-          <h1 className="text-lg font-semibold text-foreground flex-1 text-center pr-8">
+        <div className="px-6 py-4">
+          <h1 className="text-2xl font-bold text-foreground mb-6 text-center">
             Become a Mobile Phlebotomist
           </h1>
-        </header>
-
-        <div className="px-6 py-4">
           <div className="bg-accent/50 rounded-2xl p-4 mb-6">
             <h2 className="font-semibold text-foreground mb-2">Join Our Network</h2>
             <p className="text-sm text-muted-foreground">
@@ -228,3 +216,5 @@ export default function BecomePhlebotomist() {
     </>
   );
 }
+
+BecomePhlebotomist.layout = (page: React.ReactNode) => <PublicLayout>{page}</PublicLayout>;

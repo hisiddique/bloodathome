@@ -23,15 +23,24 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $firstName = fake()->firstName();
+        $middleName = fake()->optional(0.3)->firstName();
+        $lastName = fake()->lastName();
+        $fullName = $middleName
+            ? "{$firstName} {$middleName} {$lastName}"
+            : "{$firstName} {$lastName}";
+
         return [
-            'name' => fake()->name(),
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'last_name' => $lastName,
+            'full_name' => $fullName,
             'email' => fake()->unique()->safeEmail(),
+            'phone' => fake()->regexify('0[1-9][0-9]{9}'), // UK phone format
+            'profile_image' => fake()->optional(0.4)->imageUrl(200, 200, 'people'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'two_factor_secret' => Str::random(10),
-            'two_factor_recovery_codes' => Str::random(10),
-            'two_factor_confirmed_at' => now(),
         ];
     }
 
@@ -43,6 +52,49 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Indicate that the model's email address should be verified.
+     */
+    public function verified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => now(),
+        ]);
+    }
+
+    /**
+     * Create a user configured as a patient (no provider profile).
+     */
+    public function asPatient(): static
+    {
+        return $this->state(fn (array $attributes) => [])
+            ->afterCreating(function ($user) {
+                $user->assignRole('patient');
+            });
+    }
+
+    /**
+     * Create a user configured as a provider (no patient profile).
+     */
+    public function asProvider(): static
+    {
+        return $this->state(fn (array $attributes) => [])
+            ->afterCreating(function ($user) {
+                $user->assignRole('provider');
+            });
+    }
+
+    /**
+     * Create a user configured as an admin.
+     */
+    public function asAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [])
+            ->afterCreating(function ($user) {
+                $user->assignRole('admin');
+            });
     }
 
     /**

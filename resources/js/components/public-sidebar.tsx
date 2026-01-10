@@ -1,6 +1,8 @@
-import { Link } from "@inertiajs/react";
-import { X, Stethoscope, HelpCircle, CalendarCheck, Search, Home } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetClose } from "@/components/ui/sheet";
+import { Link, usePage } from "@inertiajs/react";
+import { Stethoscope, HelpCircle, CalendarCheck, Search, Home } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { cn, isSameUrl } from "@/lib/utils";
+import type { SharedData } from "@/types";
 
 interface PublicSidebarProps {
   open: boolean;
@@ -8,17 +10,21 @@ interface PublicSidebarProps {
 }
 
 export function PublicSidebar({ open, onOpenChange }: PublicSidebarProps) {
+  const page = usePage<SharedData>();
+
+  const navItems = [
+    { href: '/', icon: Home, label: 'Home' },
+    { href: '/search', icon: Search, label: 'Find a Phlebotomist' },
+    { href: '/become-phlebotomist', icon: Stethoscope, label: 'Become a Mobile Phlebotomist' },
+    { href: '/bookings', icon: CalendarCheck, label: 'My Bookings & Chat' },
+    { href: '/faq', icon: HelpCircle, label: 'FAQ' },
+  ];
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 p-0 bg-background border-r border-border">
         <SheetHeader className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <SheetClose asChild>
-              <button className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </SheetClose>
-          </div>
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
         </SheetHeader>
 
         <div className="p-4 space-y-3">
@@ -42,50 +48,27 @@ export function PublicSidebar({ open, onOpenChange }: PublicSidebarProps) {
 
         <div className="border-t border-border">
           <nav className="py-2">
-            <Link
-              href="/"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-muted transition-colors"
-            >
-              <Home className="w-5 h-5" />
-              <span className="font-medium">Home</span>
-            </Link>
+            {navItems.map((item) => {
+              const isActive = isSameUrl(page.url, item.href);
+              const Icon = item.icon;
 
-            <Link
-              href="/search"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-muted transition-colors"
-            >
-              <Search className="w-5 h-5" />
-              <span className="font-medium">Find a Phlebotomist</span>
-            </Link>
-
-            <Link
-              href="/become-phlebotomist"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-muted transition-colors"
-            >
-              <Stethoscope className="w-5 h-5" />
-              <span className="font-medium">Become a Mobile Phlebotomist</span>
-            </Link>
-
-            <Link
-              href="/bookings"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-muted transition-colors"
-            >
-              <CalendarCheck className="w-5 h-5" />
-              <span className="font-medium">My Bookings & Chat</span>
-            </Link>
-
-            <Link
-              href="/faq"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-muted transition-colors"
-            >
-              <HelpCircle className="w-5 h-5" />
-              <span className="font-medium">FAQ</span>
-            </Link>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => onOpenChange(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 transition-colors",
+                    isActive
+                      ? "bg-muted text-foreground font-semibold"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
 

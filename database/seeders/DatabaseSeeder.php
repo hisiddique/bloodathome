@@ -13,15 +13,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed lookup tables first (in dependency order)
+        $this->call([
+            // Status and type lookup tables
+            BookingStatusSeeder::class,
+            PaymentStatusSeeder::class,
+            PaymentMethodSeeder::class,
+            SettlementStatusSeeder::class,
+            VerificationStatusSeeder::class,
+            ProviderTypeSeeder::class,
+            ServiceActiveStatusSeeder::class,
+            ProviderStatusSeeder::class,
+            CollectionTypeSeeder::class,
+            ServiceCategorySeeder::class,
 
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => 'password',
-                'email_verified_at' => now(),
-            ]
-        );
+            // Roles and permissions
+            RoleAndPermissionSeeder::class,
+        ]);
+
+        // Optionally create a test user
+        // Uncomment if you want to create test data during seeding
+        // User::factory(10)->create();
     }
 }

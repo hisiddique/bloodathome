@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\Phlebotomist;
+use App\Models\Provider;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class BookingController extends Controller
 {
@@ -15,7 +15,7 @@ class BookingController extends Controller
     {
         $bookings = auth()->user()
             ->bookings()
-            ->with(['phlebotomist', 'bloodTest'])
+            ->with(['provider', 'status', 'items.service'])
             ->latest()
             ->paginate(10);
 
@@ -26,52 +26,59 @@ class BookingController extends Controller
 
     public function create(): Response
     {
-        $phlebotomists = Phlebotomist::query()
-            ->approved()
-            ->available()
-            ->orderBy('rating', 'desc')
+        $providers = Provider::query()
+            ->with(['type', 'status', 'providerServices.service'])
+            ->whereHas('status', function ($q) {
+                $q->where('status_name', 'Approved');
+            })
+            ->orderByDesc('average_rating')
             ->get();
 
         return Inertia::render('booking/index', [
-            'phlebotomists' => $phlebotomists,
+            'providers' => $providers,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'phlebotomist_id' => 'required|exists:phlebotomists,id',
-            'blood_test_id' => 'nullable|exists:blood_tests,id',
-            'appointment_date' => 'required|date|after:today',
+            'provider_id' => 'required|exists:providers,id',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'exists:services,id',
+            'scheduled_date' => 'required|date|after:today',
             'time_slot' => 'required|string',
-            'address' => 'required|string',
-            'postcode' => 'nullable|string',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            'visit_type' => 'required|in:home,clinic',
-            'price' => 'required|numeric|min:0',
-            'patient_details' => 'nullable|array',
+            'collection_type' => 'required|string|in:home_visit,clinic_visit,postal',
+            'service_address_line1' => 'required|string',
+            'service_town_city' => 'required|string',
+            'service_postcode' => 'required|string',
+            'grand_total_cost' => 'required|numeric|min:0',
+            'nhs_number' => 'nullable|string',
+            'visit_instructions' => 'nullable|string',
         ]);
-
-        $phlebotomist = Phlebotomist::findOrFail($validated['phlebotomist_id']);
 
         $booking = Booking::create([
-            'patient_id' => auth()->id(),
-            'phlebotomist_id' => $validated['phlebotomist_id'],
-            'phlebotomist_name' => $phlebotomist->name,
-            'phlebotomist_image' => $phlebotomist->image,
-            'blood_test_id' => $validated['blood_test_id'] ?? null,
-            'appointment_date' => $validated['appointment_date'],
+            'user_id' => auth()->id(),
+            'provider_id' => $validated['provider_id'],
+            'confirmation_number' => Booking::generateConfirmationNumber(),
+            'scheduled_date' => $validated['scheduled_date'],
             'time_slot' => $validated['time_slot'],
-            'address' => $validated['address'],
-            'postcode' => $validated['postcode'] ?? null,
-            'latitude' => $validated['latitude'] ?? null,
-            'longitude' => $validated['longitude'] ?? null,
-            'visit_type' => $validated['visit_type'],
-            'status' => 'pending',
-            'price' => $validated['price'],
-            'patient_details' => $validated['patient_details'] ?? null,
+            'service_address_line1' => $validated['service_address_line1'],
+            'service_town_city' => $validated['service_town_city'],
+            'service_postcode' => $validated['service_postcode'],
+            'grand_total_cost' => $validated['grand_total_cost'],
+            'nhs_number' => $validated['nhs_number'] ?? null,
+            'visit_instructions' => $validated['visit_instructions'] ?? null,
         ]);
+
+        // Create booking items for each service
+        if (! empty($validated['service_ids'])) {
+            foreach ($validated['service_ids'] as $serviceId) {
+                $booking->items()->create([
+                    'service_id' => $serviceId,
+                    // Additional fields like item_cost, quantity can be added here
+                ]);
+            }
+        }
 
         return redirect()->route('bookings.show', $booking)->with('success', 'Booking created successfully!');
     }
@@ -80,7 +87,12 @@ class BookingController extends Controller
     {
         $this->authorize('view', $booking);
 
-        $booking->load(['phlebotomist', 'bloodTest', 'chatMessages.sender']);
+        $booking->load([
+            'provider.type',
+            'status',
+            'items.service',
+            'collectionType',
+        ]);
 
         return Inertia::render('bookings/show', [
             'booking' => $booking,
@@ -91,15 +103,14 @@ class BookingController extends Controller
     {
         $this->authorize('update', $booking);
 
-        if ($booking->status === 'cancelled') {
+        if ($booking->isCancelled()) {
             return back()->with('error', 'Booking is already cancelled.');
         }
 
-        if ($booking->status === 'completed') {
-            return back()->with('error', 'Cannot cancel a completed booking.');
-        }
-
-        $booking->update(['status' => 'cancelled']);
+        $booking->update([
+            'cancelled_at' => now(),
+            'cancellation_reason' => request()->input('reason', 'Cancelled by patient'),
+        ]);
 
         return redirect()->route('bookings.index')->with('success', 'Booking cancelled successfully.');
     }
