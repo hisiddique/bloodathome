@@ -28,6 +28,7 @@ Route::get('/clinics/{clinicLocation}', [ClinicLocationController::class, 'show'
 
 // Booking routes
 Route::get('/booking', [BookingController::class, 'create'])->name('booking.create');
+Route::get('/book', [BookingController::class, 'wizard'])->name('booking.wizard');
 Route::post('/booking', [BookingController::class, 'store'])->middleware('auth')->name('booking.store');
 
 // Authenticated routes

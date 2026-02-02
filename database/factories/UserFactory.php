@@ -23,20 +23,12 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
-        $firstName = fake()->firstName();
-        $middleName = fake()->optional(0.3)->firstName();
-        $lastName = fake()->lastName();
-        $fullName = $middleName
-            ? "{$firstName} {$middleName} {$lastName}"
-            : "{$firstName} {$lastName}";
-
         return [
-            'first_name' => $firstName,
-            'middle_name' => $middleName,
-            'last_name' => $lastName,
-            'full_name' => $fullName,
+            'first_name' => fake()->firstName(),
+            'middle_name' => fake()->optional(0.3)->firstName(),
+            'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->regexify('0[1-9][0-9]{9}'), // UK phone format
+            'phone' => fake()->optional()->regexify('0[1-9][0-9]{9}'), // UK phone format
             'profile_image' => fake()->optional(0.4)->imageUrl(200, 200, 'people'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),

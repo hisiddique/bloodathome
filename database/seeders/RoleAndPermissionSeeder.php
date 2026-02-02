@@ -18,54 +18,36 @@ class RoleAndPermissionSeeder extends Seeder
 
         // Create permissions
         $permissions = [
-            // Booking permissions
-            'create booking',
-            'view booking',
-            'update booking',
-            'cancel booking',
-            'view all bookings',
+            // Admin permissions
+            'view_admin_dashboard',
+            'manage_users',
+            'manage_providers',
+            'approve_providers',
+            'manage_bookings',
+            'manage_services',
+            'manage_payments',
+            'process_refunds',
+            'manage_settlements',
+            'moderate_chat',
+            'moderate_reviews',
+            'manage_settings',
+            'view_audit_logs',
 
             // Provider permissions
-            'create provider',
-            'view provider',
-            'update provider',
-            'delete provider',
-            'view all providers',
+            'view_provider_dashboard',
+            'manage_own_services',
+            'manage_own_availability',
+            'view_own_earnings',
 
             // Patient permissions
-            'view patient',
-            'update patient',
-            'view all patients',
+            'view_patient_dashboard',
+            'create_booking',
+            'manage_own_addresses',
+            'manage_own_payment_methods',
 
-            // Service permissions
-            'create service',
-            'view service',
-            'update service',
-            'delete service',
-
-            // Payment permissions
-            'create payment',
-            'view payment',
-            'refund payment',
-            'view all payments',
-
-            // Settlement permissions
-            'view settlement',
-            'process settlement',
-            'view all settlements',
-
-            // Review permissions
-            'create review',
-            'view review',
-            'publish review',
-            'delete review',
-
-            // Admin permissions
-            'manage users',
-            'manage roles',
-            'manage permissions',
-            'view audit logs',
-            'manage system settings',
+            // Shared permissions (used by both provider and patient)
+            'manage_own_profile',
+            'manage_own_bookings',
         ];
 
         foreach ($permissions as $permission) {
@@ -74,34 +56,44 @@ class RoleAndPermissionSeeder extends Seeder
 
         // Create roles and assign permissions
 
-        // Patient role
-        $patientRole = Role::create(['name' => 'patient']);
-        $patientRole->givePermissionTo([
-            'create booking',
-            'view booking',
-            'cancel booking',
-            'view patient',
-            'update patient',
-            'create payment',
-            'view payment',
-            'create review',
-            'view review',
+        // Super Admin role (has all permissions)
+        $superAdminRole = Role::create(['name' => 'super_admin']);
+        $superAdminRole->givePermissionTo([
+            'view_admin_dashboard',
+            'manage_users',
+            'manage_providers',
+            'approve_providers',
+            'manage_bookings',
+            'manage_services',
+            'manage_payments',
+            'process_refunds',
+            'manage_settlements',
+            'moderate_chat',
+            'moderate_reviews',
+            'manage_settings',
+            'view_audit_logs',
         ]);
 
         // Provider role
         $providerRole = Role::create(['name' => 'provider']);
         $providerRole->givePermissionTo([
-            'view booking',
-            'update booking',
-            'view provider',
-            'update provider',
-            'view payment',
-            'view settlement',
-            'view review',
+            'view_provider_dashboard',
+            'manage_own_profile',
+            'manage_own_services',
+            'manage_own_availability',
+            'manage_own_bookings',
+            'view_own_earnings',
         ]);
 
-        // Admin role (has all permissions)
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo(Permission::all());
+        // Patient role
+        $patientRole = Role::create(['name' => 'patient']);
+        $patientRole->givePermissionTo([
+            'view_patient_dashboard',
+            'create_booking',
+            'manage_own_bookings',
+            'manage_own_profile',
+            'manage_own_addresses',
+            'manage_own_payment_methods',
+        ]);
     }
 }

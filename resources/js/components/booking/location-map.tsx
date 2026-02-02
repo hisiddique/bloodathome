@@ -1,89 +1,46 @@
-import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { Settings } from "lucide-react";
+import { usePage } from '@inertiajs/react';
+import { LazyMapProvider } from '@/components/maps/lazy-map-provider';
+import type { MapMarker } from '@/components/maps/google-map';
 
 interface LocationMapProps {
-  center: [number, number];
-  zoom?: number;
-  markers?: Array<{
-    id: string;
-    coordinates: [number, number];
-    label?: string;
-  }>;
-  mapboxToken: string;
+    center: [number, number];
+    zoom?: number;
+    markers?: Array<{
+        id: string;
+        coordinates: [number, number];
+        label?: string;
+    }>;
 }
 
 export function LocationMap({
-  center,
-  zoom = 12,
-  markers = [],
-  mapboxToken,
+    center,
+    zoom = 12,
+    markers = [],
 }: LocationMapProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const [mapError, setMapError] = useState(false);
+    const { mapProvider, googleMapsKey, mapboxToken } = usePage<{
+        mapProvider: 'google' | 'mapbox';
+        googleMapsKey?: string;
+        mapboxToken?: string;
+    }>().props;
 
-  useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) {
-      setMapError(true);
-      return;
-    }
+    // Convert markers to new format
+    const mapMarkers: MapMarker[] = markers.map((marker) => ({
+        id: marker.id,
+        position: { lat: center[1], lng: center[0] },
+        type: 'user',
+        title: marker.label,
+    }));
 
-    mapboxgl.accessToken = mapboxToken;
-
-    try {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: "mapbox://styles/mapbox/light-v11",
-        center: center,
-        zoom: zoom,
-      });
-
-      map.current.addControl(
-        new mapboxgl.NavigationControl({ visualizePitch: false }),
-        "top-right"
-      );
-
-      // Add markers
-      markers.forEach((marker) => {
-        new mapboxgl.Marker({ color: "#60a5fa" })
-          .setLngLat(marker.coordinates)
-          .addTo(map.current!);
-      });
-
-      setMapError(false);
-    } catch (error) {
-      console.error("Map error:", error);
-      setMapError(true);
-    }
-
-    return () => {
-      map.current?.remove();
-    };
-  }, [center, zoom, markers, mapboxToken]);
-
-  if (mapError || !mapboxToken) {
     return (
-      <div className="relative w-full h-64 bg-muted rounded-2xl flex flex-col items-center justify-center p-6">
-        <div className="absolute inset-0 opacity-20">
-          <div className="w-full h-full bg-gradient-to-br from-muted to-border rounded-2xl" />
-        </div>
-        <div className="relative z-10 text-center space-y-2">
-          <Settings className="w-10 h-10 text-muted-foreground mx-auto" />
-          <p className="text-sm text-muted-foreground">
-            Map unavailable - Mapbox token not configured
-          </p>
-        </div>
-      </div>
+        <LazyMapProvider
+            provider={mapProvider}
+            googleMapsKey={googleMapsKey}
+            mapboxToken={mapboxToken}
+            center={{ lat: center[1], lng: center[0] }}
+            zoom={zoom}
+            markers={mapMarkers}
+        />
     );
-  }
-
-  return (
-    <div className="relative w-full h-64 rounded-2xl overflow-hidden">
-      <div ref={mapContainer} className="absolute inset-0" />
-    </div>
-  );
 }
 
 export default LocationMap;

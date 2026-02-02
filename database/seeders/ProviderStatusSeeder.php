@@ -21,6 +21,10 @@ class ProviderStatusSeeder extends Seeder
                 'name' => 'Inactive',
                 'description' => 'Provider is inactive and not accepting bookings',
             ],
+            [
+                'name' => 'Pending',
+                'description' => 'Provider registration is pending approval',
+            ],
         ];
 
         foreach ($statuses as $status) {

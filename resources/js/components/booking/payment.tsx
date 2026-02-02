@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { CreditCard, Lock, Calendar, User } from "lucide-react";
+import { CreditCard, Lock, Calendar, User, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useRegion } from "@/contexts/region-context";
 import { formatCurrency } from "@/lib/format";
 import { ConfirmButton } from "./confirm-button";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { type Phlebotomist } from "@/components/phlebotomist/card";
+import { type UserPaymentMethod } from "@/types";
 
 interface PaymentProps {
   phlebotomist: Phlebotomist;
@@ -16,6 +18,7 @@ interface PaymentProps {
   onPaymentComplete: () => void;
   onBack: () => void;
   standalone?: boolean;
+  userPaymentMethods?: UserPaymentMethod[];
 }
 
 export function Payment({
@@ -25,14 +28,29 @@ export function Payment({
   onPaymentComplete,
   onBack,
   standalone = true,
+  userPaymentMethods = [],
 }: PaymentProps) {
   const { t } = useTranslation();
   const { region } = useRegion();
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("");
+  const [useNewCard, setUseNewCard] = useState(userPaymentMethods.length === 0);
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
+  const [saveNewCard, setSaveNewCard] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Pre-select default payment method
+  useState(() => {
+    if (userPaymentMethods.length > 0 && !selectedPaymentMethodId) {
+      const defaultMethod = userPaymentMethods.find(pm => pm.is_default);
+      if (defaultMethod) {
+        setSelectedPaymentMethodId(defaultMethod.id);
+        setUseNewCard(false);
+      }
+    }
+  });
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
@@ -67,11 +85,20 @@ export function Payment({
     onPaymentComplete();
   };
 
-  const isFormValid =
-    cardNumber.length >= 19 &&
-    cardName.length > 2 &&
-    expiry.length === 5 &&
-    cvv.length >= 3;
+  const getCardBrandIcon = (brand: string) => {
+    const brandLower = brand.toLowerCase();
+    if (brandLower === 'visa') return '💳';
+    if (brandLower === 'mastercard') return '💳';
+    if (brandLower === 'amex') return '💳';
+    return '💳';
+  };
+
+  const isFormValid = useNewCard
+    ? cardNumber.length >= 19 &&
+      cardName.length > 2 &&
+      expiry.length === 5 &&
+      cvv.length >= 3
+    : selectedPaymentMethodId.length > 0;
 
   return (
     <div className="pb-32 animate-fade-in">
@@ -130,7 +157,78 @@ export function Payment({
             </span>
           </div>
 
-          <div className="space-y-3">
+          {/* Saved Payment Methods */}
+          {userPaymentMethods.length > 0 && !useNewCard && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-foreground">
+                {t('Select Payment Method')}
+              </h3>
+              <div className="space-y-2">
+                {userPaymentMethods.map((method) => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setSelectedPaymentMethodId(method.id)}
+                    className={cn(
+                      "w-full p-4 bg-card border rounded-2xl text-left transition-all",
+                      selectedPaymentMethodId === method.id
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 text-foreground" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground capitalize">
+                            {method.card_brand} •••• {method.card_last_four}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t('Expires')} {method.card_exp_month}/{method.card_exp_year}
+                          </div>
+                        </div>
+                      </div>
+                      {selectedPaymentMethodId === method.id && (
+                        <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setUseNewCard(true)}
+                className="w-full rounded-2xl py-3 h-auto"
+              >
+                {t('Use a different card')}
+              </Button>
+            </div>
+          )}
+
+          {/* New Card Form */}
+          {useNewCard && (
+            <div className="space-y-3">
+              {userPaymentMethods.length > 0 && (
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-foreground">
+                    {t('Enter Card Details')}
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setUseNewCard(false)}
+                    className="text-xs"
+                  >
+                    {t('Use saved card')}
+                  </Button>
+                </div>
+              )}
             {/* Card Number */}
             <div className="relative">
               <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -183,7 +281,26 @@ export function Payment({
                 />
               </div>
             </div>
-          </div>
+
+              {/* Save Card Option (for logged-in users) */}
+              {userPaymentMethods !== undefined && (
+                <div className="flex items-start gap-3 p-4 bg-accent/30 rounded-xl border border-border">
+                  <Checkbox
+                    id="saveCard"
+                    checked={saveNewCard}
+                    onCheckedChange={(checked) => setSaveNewCard(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <label
+                    htmlFor="saveCard"
+                    className="text-sm text-foreground leading-relaxed cursor-pointer"
+                  >
+                    {t('Save this card to my profile for future bookings')}
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground text-center">
             {t('Your payment information is encrypted and secure')}

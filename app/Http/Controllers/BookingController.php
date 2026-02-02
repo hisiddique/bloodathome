@@ -34,8 +34,50 @@ class BookingController extends Controller
             ->orderByDesc('average_rating')
             ->get();
 
+        $userData = null;
+        $userAddresses = [];
+        $userPaymentMethods = [];
+
+        if (auth()->check()) {
+            $user = auth()->user();
+            $userData = [
+                'name' => $user->full_name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ];
+
+            $userAddresses = $user->addresses()->get()->map(function ($address) {
+                return [
+                    'id' => $address->id,
+                    'label' => $address->label,
+                    'address_line1' => $address->address_line1,
+                    'address_line2' => $address->address_line2,
+                    'town_city' => $address->town_city,
+                    'postcode' => $address->postcode,
+                    'is_default' => $address->is_default,
+                ];
+            });
+
+            $userPaymentMethods = $user->paymentMethods()
+                ->get()
+                ->filter(fn ($pm) => ! $pm->isExpired())
+                ->map(function ($method) {
+                    return [
+                        'id' => $method->id,
+                        'card_brand' => $method->card_brand,
+                        'card_last_four' => $method->card_last_four,
+                        'card_exp_month' => $method->card_exp_month,
+                        'card_exp_year' => $method->card_exp_year,
+                        'is_default' => $method->is_default,
+                    ];
+                });
+        }
+
         return Inertia::render('booking/index', [
             'providers' => $providers,
+            'userData' => $userData,
+            'userAddresses' => $userAddresses,
+            'userPaymentMethods' => $userPaymentMethods,
         ]);
     }
 
@@ -113,5 +155,55 @@ class BookingController extends Controller
         ]);
 
         return redirect()->route('bookings.index')->with('success', 'Booking cancelled successfully.');
+    }
+
+    public function wizard(): Response
+    {
+        $userData = null;
+        $userAddresses = [];
+        $userPaymentMethods = [];
+
+        if (auth()->check()) {
+            $user = auth()->user();
+            $userData = [
+                'name' => $user->full_name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ];
+
+            $userAddresses = $user->addresses()->get()->map(function ($address) {
+                return [
+                    'id' => $address->id,
+                    'label' => $address->label,
+                    'address_line1' => $address->address_line1,
+                    'address_line2' => $address->address_line2,
+                    'town_city' => $address->town_city,
+                    'postcode' => $address->postcode,
+                    'is_default' => $address->is_default,
+                ];
+            });
+
+            $userPaymentMethods = $user->paymentMethods()
+                ->get()
+                ->filter(fn ($pm) => ! $pm->isExpired())
+                ->map(function ($method) {
+                    return [
+                        'id' => $method->id,
+                        'card_brand' => $method->card_brand,
+                        'card_last_four' => $method->card_last_four,
+                        'card_exp_month' => $method->card_exp_month,
+                        'card_exp_year' => $method->card_exp_year,
+                        'is_default' => $method->is_default,
+                    ];
+                });
+        }
+
+        return Inertia::render('book/index', [
+            'userData' => $userData,
+            'userAddresses' => $userAddresses,
+            'userPaymentMethods' => $userPaymentMethods,
+            'googleMapsKey' => config('services.google_maps.key'),
+            'stripePublicKey' => config('services.stripe.public_key'),
+        ]);
     }
 }

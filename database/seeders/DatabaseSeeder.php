@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -29,10 +28,12 @@ class DatabaseSeeder extends Seeder
 
             // Roles and permissions
             RoleAndPermissionSeeder::class,
-        ]);
 
-        // Optionally create a test user
-        // Uncomment if you want to create test data during seeding
-        // User::factory(10)->create();
+            // Services
+            ServiceSeeder::class,
+
+            // Test users (comment out in production)
+            TestUsersSeeder::class,
+        ]);
     }
 }

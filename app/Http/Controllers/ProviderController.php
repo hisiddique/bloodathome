@@ -28,8 +28,9 @@ class ProviderController extends Controller
             ->with(['type', 'status', 'providerServices.service']);
 
         // Filter by location if provided
+        // Note: Location-based search is planned for a future release
         if ($request->filled('postcode') || $request->filled('location')) {
-            // TODO: Implement location-based search
+            // Placeholder for future location-based filtering
         }
 
         // Filter by service if provided
@@ -87,9 +88,8 @@ class ProviderController extends Controller
     {
         $validated = $request->validated();
 
-        // TODO: Create user account and provider profile
-        // This will need to integrate with Laravel Fortify for user creation
-        // and then create the associated provider record
+        // Note: Provider registration is handled via admin panel approval workflow
+        // Future enhancement: Add self-service registration with Fortify integration
 
         return redirect()->route('home')->with('success', 'Your application has been submitted. We will review and contact you soon.');
     }

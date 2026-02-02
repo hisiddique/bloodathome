@@ -24,4 +24,15 @@ export default defineConfig({
     esbuild: {
         jsx: 'automatic',
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    mapbox: ['mapbox-gl'],
+                    'google-maps': ['@googlemaps/js-api-loader'],
+                    stripe: ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+                },
+            },
+        },
+    },
 });

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar, X } from "lucide-react";
+import { Calendar, X, MapPin } from "lucide-react";
 import { BookingHeader } from "./header";
 import { ConfirmButton } from "./confirm-button";
 import { ChatButton } from "./chat-button";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { type UserData, type UserAddress } from "@/types";
 
 interface PatientDetailsProps {
   date: Date;
@@ -22,6 +23,8 @@ interface PatientDetailsProps {
   onContinue: (details: PatientDetails) => void;
   onBack: () => void;
   standalone?: boolean;
+  userData?: UserData | null;
+  userAddresses?: UserAddress[];
 }
 
 export interface PatientDetails {
@@ -45,6 +48,8 @@ export function PatientDetails({
   onContinue,
   onBack,
   standalone = true,
+  userData = null,
+  userAddresses = [],
 }: PatientDetailsProps) {
   const [details, setDetails] = useState<PatientDetails>({
     name: "",
@@ -59,6 +64,54 @@ export function PatientDetails({
     patientAge: "",
     guardianConfirmed: false,
   });
+
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [saveNewAddress, setSaveNewAddress] = useState(false);
+
+  // Pre-fill user data on mount
+  useEffect(() => {
+    if (userData) {
+      setDetails(prev => ({
+        ...prev,
+        name: userData.name || prev.name,
+        email: userData.email || prev.email,
+        phone: userData.phone || prev.phone,
+      }));
+
+      // Pre-select default address if available
+      const defaultAddress = userAddresses.find(addr => addr.is_default);
+      if (defaultAddress) {
+        setSelectedAddressId(defaultAddress.id);
+        handleAddressSelection(defaultAddress.id);
+      }
+    }
+  }, [userData, userAddresses]);
+
+  const handleAddressSelection = (addressId: string) => {
+    if (addressId === "new") {
+      setSelectedAddressId("new");
+      setDetails(prev => ({
+        ...prev,
+        address1: "",
+        address2: "",
+        city: "London",
+        postCode: "",
+      }));
+      return;
+    }
+
+    const address = userAddresses.find(addr => addr.id === addressId);
+    if (address) {
+      setSelectedAddressId(addressId);
+      setDetails(prev => ({
+        ...prev,
+        address1: address.address_line1,
+        address2: address.address_line2 || "",
+        city: address.town_city,
+        postCode: address.postcode,
+      }));
+    }
+  };
 
   const handleChange = (
     field: keyof PatientDetails,
@@ -205,6 +258,41 @@ export function PatientDetails({
           </div>
         </div>
 
+        {/* Saved Addresses for Logged-in Users */}
+        {userAddresses.length > 0 && (
+          <div className="space-y-2">
+            <label htmlFor="saved-address" className="text-sm font-medium text-foreground">
+              Saved Addresses
+            </label>
+            <Select
+              value={selectedAddressId}
+              onValueChange={handleAddressSelection}
+            >
+              <SelectTrigger id="saved-address" className="w-full px-4 py-3 h-auto bg-card border border-border rounded-xl text-foreground">
+                <SelectValue placeholder="Select a saved address or enter new" />
+              </SelectTrigger>
+              <SelectContent>
+                {userAddresses.map((address) => (
+                  <SelectItem key={address.id} value={address.id}>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                      <div className="flex-1">
+                        <div className="font-medium">{address.label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {address.address_line1}, {address.town_city}, {address.postcode}
+                        </div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+                <SelectItem value="new">
+                  <div className="font-medium">Enter new address</div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Address 1 */}
         <div className="space-y-2">
           <label htmlFor="patient-address" className="text-sm font-medium text-foreground">
@@ -280,6 +368,24 @@ export function PatientDetails({
             className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
+
+        {/* Save Address Option (for logged-in users with new address) */}
+        {userData && selectedAddressId === "new" && (
+          <div className="flex items-start gap-3 p-4 bg-accent/30 rounded-xl border border-border">
+            <Checkbox
+              id="saveAddress"
+              checked={saveNewAddress}
+              onCheckedChange={(checked) => setSaveNewAddress(checked === true)}
+              className="mt-0.5"
+            />
+            <label
+              htmlFor="saveAddress"
+              className="text-sm text-foreground leading-relaxed cursor-pointer"
+            >
+              Save this address to my profile for future bookings
+            </label>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="space-y-2">

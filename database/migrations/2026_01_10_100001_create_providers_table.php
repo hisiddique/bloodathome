@@ -25,16 +25,23 @@ return new class extends Migration
             $table->decimal('longitude', 10, 8)->nullable();
             $table->geometry('location', 'point')->nullable();
             $table->string('profile_thumbnail_url', 255)->nullable();
+            $table->boolean('show_image_in_search')->default(true);
             $table->text('bio')->nullable();
             $table->integer('experience_years')->nullable();
             $table->decimal('average_rating', 3, 2)->default(0);
             $table->integer('total_reviews')->default(0);
             $table->text('provider_notes')->nullable();
+            $table->string('dbs_certificate_path')->nullable();
+            $table->string('insurance_document_path')->nullable();
+            $table->string('rejection_reason')->nullable();
+            $table->timestamp('approved_at')->nullable();
+            $table->foreignUlid('approved_by')->nullable()->constrained('users');
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes
             $table->index('postcode');
+            $table->index(['latitude', 'longitude'], 'providers_lat_lng_index');
             // Note: Spatial index for 'location' requires NOT NULL, so we'll handle it separately if needed
             $table->index('deleted_at');
         });

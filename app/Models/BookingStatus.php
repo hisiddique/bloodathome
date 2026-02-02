@@ -38,4 +38,36 @@ class BookingStatus extends Model
     {
         return $this->hasMany(Booking::class, 'status_id');
     }
+
+    /**
+     * Get the Pending status.
+     */
+    public static function pending(): ?self
+    {
+        return static::query()->where('name', 'Pending')->first();
+    }
+
+    /**
+     * Get the Confirmed status.
+     */
+    public static function confirmed(): ?self
+    {
+        return static::query()->where('name', 'Confirmed')->first();
+    }
+
+    /**
+     * Get the Completed status.
+     */
+    public static function completed(): ?self
+    {
+        return static::query()->where('name', 'Completed')->first();
+    }
+
+    /**
+     * Get the Cancelled status.
+     */
+    public static function cancelled(): ?self
+    {
+        return static::query()->where('name', 'Cancelled')->first();
+    }
 }

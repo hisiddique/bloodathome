@@ -42,11 +42,17 @@ class Provider extends Model
         'location',
         'profile_image_url',
         'profile_thumbnail_url',
+        'show_image_in_search',
         'bio',
         'experience_years',
         'average_rating',
         'total_reviews',
         'provider_notes',
+        'dbs_certificate_path',
+        'insurance_document_path',
+        'rejection_reason',
+        'approved_at',
+        'approved_by',
     ];
 
     /**
@@ -60,6 +66,8 @@ class Provider extends Model
             'average_rating' => 'decimal:2',
             'total_reviews' => 'integer',
             'experience_years' => 'integer',
+            'show_image_in_search' => 'boolean',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -157,5 +165,13 @@ class Provider extends Model
     public function settlements(): HasMany
     {
         return $this->hasMany(ProviderSettlement::class);
+    }
+
+    /**
+     * Get the user who approved this provider.
+     */
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

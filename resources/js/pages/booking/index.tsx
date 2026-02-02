@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { router, Head } from "@inertiajs/react";
 import PublicLayout from "@/layouts/public-layout";
 import { BookingHeader } from "@/components/booking/header";
@@ -11,13 +11,25 @@ import { Payment } from "@/components/booking/payment";
 import { StepSidebar, type BookingStep } from "@/components/booking/step-sidebar";
 import { type Phlebotomist } from "@/components/phlebotomist/card";
 import { toast } from "sonner";
+import { type UserData, type UserAddress, type UserPaymentMethod } from "@/types";
 
 interface BookingProps {
   isUnder16?: boolean;
   mapboxToken?: string;
+  userData?: UserData | null;
+  userAddresses?: UserAddress[];
+  userPaymentMethods?: UserPaymentMethod[];
 }
 
-function BookingPage({ isUnder16 = false, mapboxToken }: BookingProps) {
+function BookingPage({
+  isUnder16 = false,
+  mapboxToken,
+  userData = null,
+  userAddresses = [],
+  userPaymentMethods = []
+}: BookingProps) {
+  const BOOKING_DRAFT_KEY = 'booking_draft';
+
   const [step, setStep] = useState<BookingStep>("location");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -25,6 +37,45 @@ function BookingPage({ isUnder16 = false, mapboxToken }: BookingProps) {
   const [selectedPhlebotomist, setSelectedPhlebotomist] = useState<Phlebotomist | null>(null);
   const [patientDetails, setPatientDetails] = useState<any>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
+
+  // Load booking draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem(BOOKING_DRAFT_KEY);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.selectedDate) {
+          setSelectedDate(new Date(parsed.selectedDate));
+        }
+        if (parsed.selectedSlot) setSelectedSlot(parsed.selectedSlot);
+        if (parsed.address) setAddress(parsed.address);
+        if (parsed.selectedPhlebotomist) setSelectedPhlebotomist(parsed.selectedPhlebotomist);
+        if (parsed.patientDetails) setPatientDetails(parsed.patientDetails);
+        if (parsed.step) setStep(parsed.step);
+      }
+    } catch (error) {
+      console.error('Error loading booking draft:', error);
+    }
+  }, []);
+
+  // Save booking draft to localStorage whenever critical data changes
+  useEffect(() => {
+    if (step !== 'success') {
+      try {
+        const draft = {
+          step,
+          selectedDate: selectedDate.toISOString(),
+          selectedSlot,
+          address,
+          selectedPhlebotomist,
+          patientDetails,
+        };
+        localStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+      } catch (error) {
+        console.error('Error saving booking draft:', error);
+      }
+    }
+  }, [step, selectedDate, selectedSlot, address, selectedPhlebotomist, patientDetails]);
 
   const handleBack = () => {
     switch (step) {
@@ -98,6 +149,13 @@ function BookingPage({ isUnder16 = false, mapboxToken }: BookingProps) {
           description: "Your appointment is confirmed but chat will be available after sign in.",
         });
       }
+    }
+
+    // Clear the booking draft after successful completion
+    try {
+      localStorage.removeItem(BOOKING_DRAFT_KEY);
+    } catch (error) {
+      console.error('Error clearing booking draft:', error);
     }
 
     setStep("success");
@@ -183,6 +241,8 @@ function BookingPage({ isUnder16 = false, mapboxToken }: BookingProps) {
                   onContinue={handleDetailsContinue}
                   onBack={handleBack}
                   standalone={false}
+                  userData={userData}
+                  userAddresses={userAddresses}
                 />
               </main>
             </div>
@@ -215,6 +275,7 @@ function BookingPage({ isUnder16 = false, mapboxToken }: BookingProps) {
                   onPaymentComplete={handlePaymentComplete}
                   onBack={handleBack}
                   standalone={false}
+                  userPaymentMethods={userPaymentMethods}
                 />
               </main>
             </div>
