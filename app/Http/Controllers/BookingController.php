@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\Provider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,63 +20,6 @@ class BookingController extends Controller
 
         return Inertia::render('bookings/index', [
             'bookings' => $bookings,
-        ]);
-    }
-
-    public function create(): Response
-    {
-        $providers = Provider::query()
-            ->with(['type', 'status', 'providerServices.service'])
-            ->whereHas('status', function ($q) {
-                $q->where('status_name', 'Approved');
-            })
-            ->orderByDesc('average_rating')
-            ->get();
-
-        $userData = null;
-        $userAddresses = [];
-        $userPaymentMethods = [];
-
-        if (auth()->check()) {
-            $user = auth()->user();
-            $userData = [
-                'name' => $user->full_name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-            ];
-
-            $userAddresses = $user->addresses()->get()->map(function ($address) {
-                return [
-                    'id' => $address->id,
-                    'label' => $address->label,
-                    'address_line1' => $address->address_line1,
-                    'address_line2' => $address->address_line2,
-                    'town_city' => $address->town_city,
-                    'postcode' => $address->postcode,
-                    'is_default' => $address->is_default,
-                ];
-            });
-
-            $userPaymentMethods = $user->paymentMethods()
-                ->get()
-                ->filter(fn ($pm) => ! $pm->isExpired())
-                ->map(function ($method) {
-                    return [
-                        'id' => $method->id,
-                        'card_brand' => $method->card_brand,
-                        'card_last_four' => $method->card_last_four,
-                        'card_exp_month' => $method->card_exp_month,
-                        'card_exp_year' => $method->card_exp_year,
-                        'is_default' => $method->is_default,
-                    ];
-                });
-        }
-
-        return Inertia::render('booking/index', [
-            'providers' => $providers,
-            'userData' => $userData,
-            'userAddresses' => $userAddresses,
-            'userPaymentMethods' => $userPaymentMethods,
         ]);
     }
 
@@ -162,6 +104,7 @@ class BookingController extends Controller
         $userData = null;
         $userAddresses = [];
         $userPaymentMethods = [];
+        $userDependents = [];
 
         if (auth()->check()) {
             $user = auth()->user();
@@ -196,14 +139,28 @@ class BookingController extends Controller
                         'is_default' => $method->is_default,
                     ];
                 });
+
+            $userDependents = $user->dependents()
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($dependent) {
+                    return [
+                        'id' => $dependent->id,
+                        'first_name' => $dependent->first_name,
+                        'last_name' => $dependent->last_name,
+                        'full_name' => $dependent->full_name,
+                        'date_of_birth' => $dependent->date_of_birth->format('Y-m-d'),
+                        'relationship' => $dependent->relationship,
+                        'nhs_number' => $dependent->nhs_number,
+                    ];
+                });
         }
 
         return Inertia::render('book/index', [
             'userData' => $userData,
             'userAddresses' => $userAddresses,
             'userPaymentMethods' => $userPaymentMethods,
-            'googleMapsKey' => config('services.google_maps.key'),
-            'stripePublicKey' => config('services.stripe.public_key'),
+            'userDependents' => $userDependents,
         ]);
     }
 }

@@ -1,21 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, LogIn, UserPlus, Mail, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBooking, type PatientDetailsData } from '@/contexts/booking-context';
-import { type UserAddress } from '@/types';
-import { MapPin } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
+
+interface Dependent {
+    id: string;
+    first_name: string;
+    last_name: string;
+    full_name: string;
+    date_of_birth: string;
+    relationship: string;
+    nhs_number?: string;
+}
 
 interface StepPatientProps {
     userData?: { name: string; email: string; phone?: string };
-    userAddresses?: UserAddress[];
+    isAuthenticated: boolean;
+    userDependents?: Dependent[];
 }
 
-export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) {
+export function StepPatient({ userData, isAuthenticated, userDependents = [] }: StepPatientProps) {
     const {
         patientDetails,
         isNhsTest,
@@ -23,6 +32,10 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
         setStep,
         goBack,
     } = useBooking();
+
+    const [showAuthGate, setShowAuthGate] = useState(!isAuthenticated);
+    const [continueAsGuest, setContinueAsGuest] = useState(false);
+    const [selectedDependentId, setSelectedDependentId] = useState<string | null>(null);
 
     const [details, setDetails] = useState<PatientDetailsData>({
         firstName: '',
@@ -35,9 +48,8 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
         guardianName: '',
         guardianConfirmed: false,
         notes: '',
+        isGuest: false,
     });
-
-    const [selectedAddressId, setSelectedAddressId] = useState<string>('');
 
     // Pre-fill from existing patient details or user data
     useEffect(() => {
@@ -53,20 +65,46 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
                 phone: userData.phone || '',
             }));
         }
+    }, [patientDetails, userData]);
 
-        // Pre-select default address
-        const defaultAddress = userAddresses.find((addr) => addr.is_default);
-        if (defaultAddress) {
-            setSelectedAddressId(defaultAddress.id);
+    // Calculate if patient is under 16 based on date of birth
+    const calculateIsUnder16 = (dob: string): boolean => {
+        if (!dob) return false;
+
+        const birthDate = new Date(dob);
+        const today = new Date();
+
+        // Calculate age in years
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        const dayDiff = today.getDate() - birthDate.getDate();
+
+        // Adjust age if birthday hasn't occurred this year yet
+        if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            age--;
         }
-    }, [patientDetails, userData, userAddresses]);
 
-    const handleChange = (field: keyof PatientDetailsData, value: string | boolean) => {
-        setDetails((prev) => ({ ...prev, [field]: value }));
+        return age < 16;
     };
 
-    const handleAddressSelect = (addressId: string) => {
-        setSelectedAddressId(addressId);
+    // Auto-detect if patient is under 16 whenever DOB changes
+    const isUnder16 = useMemo(() => calculateIsUnder16(details.dateOfBirth), [details.dateOfBirth]);
+
+    const handleChange = (field: keyof PatientDetailsData, value: string | boolean) => {
+        if (field === 'dateOfBirth' && typeof value === 'string') {
+            // When DOB changes, automatically update isUnder16
+            const newIsUnder16 = calculateIsUnder16(value);
+            setDetails((prev) => ({
+                ...prev,
+                dateOfBirth: value,
+                isUnder16: newIsUnder16,
+                // Clear guardian fields if no longer under 16
+                guardianName: newIsUnder16 ? prev.guardianName : '',
+                guardianConfirmed: newIsUnder16 ? prev.guardianConfirmed : false,
+            }));
+        } else {
+            setDetails((prev) => ({ ...prev, [field]: value }));
+        }
     };
 
     const validateEmail = (email: string): boolean => {
@@ -75,8 +113,10 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
     };
 
     const validatePhone = (phone: string): boolean => {
-        const phoneRegex = /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/;
-        return phoneRegex.test(phone.replace(/\s/g, ''));
+        // Accept UK numbers (mobile/landline) and international formats
+        // Minimum 10 digits, allows +, spaces, dashes, parentheses
+        const cleaned = phone.replace(/[\s\-()]/g, '');
+        return /^(\+?\d{10,15})$/.test(cleaned);
     };
 
     const validateNhsNumber = (nhsNumber: string): boolean => {
@@ -90,6 +130,56 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
         const date = new Date(dob);
         const now = new Date();
         return date < now;
+    };
+
+    const handleContinueAsGuest = () => {
+        setContinueAsGuest(true);
+        setShowAuthGate(false);
+        setDetails((prev) => ({ ...prev, isGuest: true }));
+    };
+
+    const handleDependentSelection = (dependentId: string | null) => {
+        setSelectedDependentId(dependentId);
+
+        if (dependentId === null) {
+            // "Myself" selected - pre-fill with user data
+            if (userData) {
+                const [firstName, ...lastNameParts] = userData.name.split(' ');
+                setDetails({
+                    firstName: firstName || '',
+                    lastName: lastNameParts.join(' ') || '',
+                    email: userData.email || '',
+                    phone: userData.phone || '',
+                    dateOfBirth: '',
+                    nhsNumber: '',
+                    isUnder16: false,
+                    guardianName: '',
+                    guardianConfirmed: false,
+                    notes: '',
+                    isGuest: false,
+                    dependentId: null,
+                });
+            }
+        } else {
+            // Dependent selected - pre-fill with dependent data
+            const dependent = userDependents.find(d => d.id === dependentId);
+            if (dependent) {
+                setDetails({
+                    firstName: dependent.first_name,
+                    lastName: dependent.last_name,
+                    email: userData?.email || '',
+                    phone: userData?.phone || '',
+                    dateOfBirth: dependent.date_of_birth,
+                    nhsNumber: dependent.nhs_number || '',
+                    isUnder16: calculateIsUnder16(dependent.date_of_birth),
+                    guardianName: '',
+                    guardianConfirmed: false,
+                    notes: '',
+                    isGuest: false,
+                    dependentId: dependent.id,
+                });
+            }
+        }
     };
 
     const handleContinue = () => {
@@ -158,51 +248,113 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
         <div className="space-y-6">
             {/* Header */}
             <div>
+                <button type="button" onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3">
+                    <ChevronLeft className="w-4 h-4" />
+                    Back to Select Provider
+                </button>
                 <h1 className="text-2xl font-semibold text-foreground mb-2">Patient Details</h1>
-                <p className="text-muted-foreground">Please provide your information</p>
+                <p className="text-muted-foreground">
+                    {showAuthGate ? 'Sign in, create an account, or continue as guest' : 'Please provide your information'}
+                </p>
             </div>
 
-            {/* Under 16 Toggle */}
-            <div className="flex items-center gap-3 p-4 bg-accent/30 rounded-xl border border-border">
-                <Checkbox
-                    id="under-16"
-                    checked={details.isUnder16}
-                    onCheckedChange={(checked) => handleChange('isUnder16', checked === true)}
-                />
-                <label htmlFor="under-16" className="text-sm text-foreground cursor-pointer flex-1">
-                    Patient is under 16 years old
-                </label>
-            </div>
-
-            {/* Guardian Fields (if under 16) */}
-            {details.isUnder16 && (
-                <div className="space-y-4 p-4 bg-accent/30 rounded-xl border border-border">
-                    <h3 className="text-sm font-semibold text-foreground">Guardian Information</h3>
-
-                    <div className="space-y-2">
-                        <label htmlFor="guardian-name" className="text-sm font-medium text-foreground">
-                            Guardian Name (Adult with Parental Responsibility) <span className="text-destructive">*</span>
-                        </label>
-                        <Input
-                            id="guardian-name"
-                            type="text"
-                            value={details.guardianName || ''}
-                            onChange={(e) => handleChange('guardianName', e.target.value)}
-                            placeholder="Full name"
-                        />
+            {/* Auth Gate - Only for unauthenticated users */}
+            {showAuthGate && (
+                <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">How would you like to continue?</h3>
+                    <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-3 text-sm text-green-800 dark:text-green-200">
+                        Your booking details will be saved. You'll return here after signing in or creating an account.
                     </div>
+                    <div className="grid gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.visit('/login?redirect=/book')}
+                            className="w-full justify-start py-6 text-base"
+                        >
+                            <LogIn className="w-5 h-5 mr-3" />
+                            <div className="text-left">
+                                <div>Sign in to your account</div>
+                                <div className="text-xs text-muted-foreground font-normal">Already have an account</div>
+                            </div>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.visit('/register?redirect=/book')}
+                            className="w-full justify-start py-6 text-base"
+                        >
+                            <UserPlus className="w-5 h-5 mr-3" />
+                            <div className="text-left">
+                                <div>Create an account</div>
+                                <div className="text-xs text-muted-foreground font-normal">Save your details for future bookings</div>
+                            </div>
+                        </Button>
+                        <div className="relative py-2">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-border" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-card px-2 text-muted-foreground">or</span>
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleContinueAsGuest}
+                            className="w-full justify-start py-6 text-base"
+                        >
+                            <Mail className="w-5 h-5 mr-3" />
+                            <div className="text-left">
+                                <div>Continue as guest</div>
+                                <div className="text-xs text-muted-foreground font-normal">Enter your details below</div>
+                            </div>
+                        </Button>
+                    </div>
+                </div>
+            )}
 
-                    <div className="flex items-start gap-3">
-                        <Checkbox
-                            id="guardian-confirm"
-                            checked={details.guardianConfirmed || false}
-                            onCheckedChange={(checked) => handleChange('guardianConfirmed', checked === true)}
-                            className="mt-0.5"
-                        />
-                        <label htmlFor="guardian-confirm" className="text-sm text-muted-foreground cursor-pointer">
-                            I confirm that I have parental responsibility for this child and will be present at the blood
-                            draw. (We will need to check your ID)
-                        </label>
+            {/* Patient Details Form - Only show when authenticated or guest mode selected */}
+            {!showAuthGate && (
+                <>
+            {/* Dependent Selector - Only for authenticated users with dependents */}
+            {isAuthenticated && userDependents.length > 0 && (
+                <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground">
+                        Who is this booking for?
+                    </label>
+                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                        <button
+                            type="button"
+                            onClick={() => handleDependentSelection(null)}
+                            className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
+                                selectedDependentId === null
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                            }`}
+                        >
+                            <div className="flex size-8 items-center justify-center rounded-full bg-primary/10">
+                                <User className="size-4 text-primary" />
+                            </div>
+                            <span className="font-medium">Myself</span>
+                        </button>
+                        {userDependents.map((dependent) => (
+                            <button
+                                key={dependent.id}
+                                type="button"
+                                onClick={() => handleDependentSelection(dependent.id)}
+                                className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
+                                    selectedDependentId === dependent.id
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border hover:border-primary/50'
+                                }`}
+                            >
+                                <div className="flex size-8 items-center justify-center rounded-full bg-primary/10">
+                                    <Users className="size-4 text-primary" />
+                                </div>
+                                <span className="font-medium">{dependent.full_name}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
@@ -284,8 +436,55 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
                     value={details.dateOfBirth}
                     onChange={(e) => handleChange('dateOfBirth', e.target.value)}
                     max={new Date().toISOString().split('T')[0]}
+                    aria-required="true"
                 />
             </div>
+
+            {/* Guardian Fields (if under 16) - Auto-detected from DOB */}
+            {isUnder16 && (
+                <div
+                    className="space-y-4 p-4 bg-accent/30 rounded-xl border border-border transition-all duration-300 ease-in-out animate-in"
+                    role="region"
+                    aria-label="Guardian information required"
+                    aria-live="polite"
+                >
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        <h3 className="text-sm font-semibold text-foreground">Guardian Information Required</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                        Since the patient is under 16 years old, a guardian must be present.
+                    </p>
+
+                    <div className="space-y-2">
+                        <label htmlFor="guardian-name" className="text-sm font-medium text-foreground">
+                            Guardian Name (Adult with Parental Responsibility) <span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                            id="guardian-name"
+                            type="text"
+                            value={details.guardianName || ''}
+                            onChange={(e) => handleChange('guardianName', e.target.value)}
+                            placeholder="Full name of parent or legal guardian"
+                            aria-required="true"
+                        />
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                        <Checkbox
+                            id="guardian-confirm"
+                            checked={details.guardianConfirmed || false}
+                            onCheckedChange={(checked) => handleChange('guardianConfirmed', checked === true)}
+                            className="mt-0.5"
+                            aria-required="true"
+                        />
+                        <label htmlFor="guardian-confirm" className="text-sm text-muted-foreground cursor-pointer">
+                            I confirm that I have parental responsibility for this child and will be present at the blood
+                            draw. (We will need to check your ID)
+                        </label>
+                    </div>
+                </div>
+            )}
 
             {/* NHS Number (if NHS test) */}
             {isNhsTest && (
@@ -305,35 +504,6 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
                 </div>
             )}
 
-            {/* Saved Addresses */}
-            {userAddresses.length > 0 && (
-                <div className="space-y-2">
-                    <label htmlFor="saved-address" className="text-sm font-medium text-foreground">
-                        Saved Addresses
-                    </label>
-                    <Select value={selectedAddressId} onValueChange={handleAddressSelect}>
-                        <SelectTrigger id="saved-address">
-                            <SelectValue placeholder="Select address or skip" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {userAddresses.map((address) => (
-                                <SelectItem key={address.id} value={address.id}>
-                                    <div className="flex items-start gap-2">
-                                        <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                                        <div className="flex-1">
-                                            <div className="font-medium">{address.label}</div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {address.address_line1}, {address.town_city}, {address.postcode}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
-
             {/* Special Instructions */}
             <div className="space-y-2">
                 <label htmlFor="notes" className="text-sm font-medium text-foreground">
@@ -343,9 +513,9 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
                     id="notes"
                     value={details.notes || ''}
                     onChange={(e) => handleChange('notes', e.target.value)}
-                    placeholder="Please tell us anything else we might need to know about your requirements including: details about specific collection(s), availability or accessibility restrictions, or previous problems you may have had having your blood taken."
+                    placeholder="E.g. specific collection requirements, accessibility needs, or previous issues with blood draws..."
                     rows={4}
-                    className="resize-none"
+                    className="resize-none placeholder:text-muted-foreground/60 placeholder:italic"
                 />
             </div>
 
@@ -358,14 +528,13 @@ export function StepPatient({ userData, userAddresses = [] }: StepPatientProps) 
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={goBack} className="sm:w-auto w-full py-6">
-                    Back
-                </Button>
-                <Button onClick={handleContinue} disabled={!isFormValid} className="flex-1 py-6 text-base" size="lg">
+            <div className="pt-4">
+                <Button onClick={handleContinue} disabled={!isFormValid} className="w-full py-6 text-base" size="lg">
                     Continue to Payment
                 </Button>
             </div>
+            </>
+            )}
         </div>
     );
 }

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { router, Head } from "@inertiajs/react";
-import { BookingHeader } from "@/components/booking/header";
-import { ChatButton } from "@/components/booking/chat-button";
-import { BookingChat } from "@/components/booking/chat";
+import { BookingHeader } from "@/components/ui/booking-header";
+import { ChatButton } from "@/components/ui/chat-button";
+import { BookingChat } from "@/components/ui/booking-chat";
 import { Calendar, Clock, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";

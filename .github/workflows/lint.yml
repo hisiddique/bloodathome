@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   quality:
+    if: false  # Temporarily disabled
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

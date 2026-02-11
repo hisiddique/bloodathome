@@ -1,6 +1,6 @@
 import { router, Head, Link } from "@inertiajs/react";
 import { Search, MapPin, Clock, Shield, Star } from "lucide-react";
-import { ChatButton } from "@/components/booking/chat-button";
+import { ChatButton } from "@/components/ui/chat-button";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/layouts/public-layout";
 
@@ -30,7 +30,7 @@ export default function Index() {
                   className="rounded-full text-base md:text-lg px-8 py-6 h-auto shadow-lg hover:scale-105 transition-transform"
                   asChild
                 >
-                  <Link href="/search">
+                  <Link href="/book">
                     <Search className="w-5 h-5" />
                     Find a Phlebotomist
                   </Link>
@@ -143,7 +143,7 @@ export default function Index() {
               className="rounded-full px-8 py-6 h-auto text-base lg:text-lg"
               asChild
             >
-              <Link href="/search">Get Started</Link>
+              <Link href="/book">Get Started</Link>
             </Button>
           </div>
         </section>

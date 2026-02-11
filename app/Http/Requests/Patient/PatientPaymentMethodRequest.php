@@ -20,13 +20,7 @@ class PatientPaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'stripe_payment_method_id' => ['required', 'string', 'max:255'],
-            'stripe_customer_id' => ['required', 'string', 'max:255'],
-            'card_brand' => ['required', 'string', 'max:50'],
-            'card_last_four' => ['required', 'string', 'size:4'],
-            'card_exp_month' => ['required', 'integer', 'min:1', 'max:12'],
-            'card_exp_year' => ['required', 'integer', 'min:'.now()->year],
-            'is_default' => ['boolean'],
+            'payment_method_id' => ['required', 'string'],
         ];
     }
 
@@ -36,16 +30,7 @@ class PatientPaymentMethodRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'stripe_payment_method_id.required' => 'Payment method ID is required.',
-            'stripe_customer_id.required' => 'Customer ID is required.',
-            'card_brand.required' => 'Card brand is required.',
-            'card_last_four.required' => 'Card last four digits are required.',
-            'card_last_four.size' => 'Card last four digits must be exactly 4 digits.',
-            'card_exp_month.required' => 'Card expiration month is required.',
-            'card_exp_month.min' => 'Invalid expiration month.',
-            'card_exp_month.max' => 'Invalid expiration month.',
-            'card_exp_year.required' => 'Card expiration year is required.',
-            'card_exp_year.min' => 'Card has expired.',
+            'payment_method_id.required' => 'Payment method ID is required.',
         ];
     }
 }

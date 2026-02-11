@@ -6,7 +6,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { ConversationList, type ConversationItem } from '@/components/chat';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { MessageCircle } from 'lucide-react';
@@ -29,11 +29,11 @@ interface ProviderChatIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Messages',
-        href: '/provider/chat',
+        href: '/chat',
     },
 ];
 
@@ -56,7 +56,7 @@ export default function ProviderChatIndex({
     );
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Messages" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div>
@@ -89,12 +89,12 @@ export default function ProviderChatIndex({
                         <CardContent>
                             <ConversationList
                                 conversations={conversationItems}
-                                basePath="/provider/chat"
+                                basePath="/chat"
                             />
                         </CardContent>
                     </Card>
                 )}
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

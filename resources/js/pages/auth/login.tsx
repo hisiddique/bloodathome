@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Link } from "@inertiajs/react";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
-import { ConfirmButton } from "@/components/booking/confirm-button";
+import { Link, router } from "@inertiajs/react";
+import { Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
+import { PasswordInput } from '@/components/ui/password-input';
 import PublicLayout from '@/layouts/public-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
@@ -15,15 +15,17 @@ interface LoginProps {
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
+    redirect?: string;
 }
 
 export default function Login({
     status,
     canResetPassword,
     canRegister,
+    redirect,
 }: LoginProps) {
-    const [showPassword, setShowPassword] = useState(false);
-
+    // Get redirect from URL query params if not passed as prop
+    const redirectUrl = redirect || new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
     return (
         <>
             <Head title="Sign In" />
@@ -46,10 +48,16 @@ export default function Login({
                             toast.success("Welcome back!", {
                                 description: "Login successful",
                             });
+                            // Redirect to intended URL after successful login
+                            if (redirectUrl && redirectUrl !== '/dashboard') {
+                                router.visit(redirectUrl);
+                            }
                         }}
                     >
                         {({ processing, errors }) => (
                             <>
+                                {/* Hidden field for redirect URL */}
+                                <input type="hidden" name="redirect" value={redirectUrl} />
                                 <div className="space-y-4">
                                     <div>
                                         <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
@@ -74,25 +82,12 @@ export default function Login({
                                         <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                                             Password
                                         </label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
-                                            <input
-                                                id="password"
-                                                type={showPassword ? "text" : "password"}
-                                                name="password"
-                                                required
-                                                placeholder="Enter your password"
-                                                className="w-full pl-12 pr-12 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                aria-label={showPassword ? "Hide password" : "Show password"}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                                            >
-                                                {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
-                                            </button>
-                                        </div>
+                                        <PasswordInput
+                                            id="password"
+                                            name="password"
+                                            required
+                                            placeholder="Enter your password"
+                                        />
                                         <InputError message={errors.password} />
                                     </div>
                                 </div>
@@ -105,9 +100,9 @@ export default function Login({
                                     </div>
                                 )}
 
-                                <ConfirmButton type="submit" disabled={processing}>
+                                <Button type="submit" disabled={processing} className="w-full py-6 text-base">
                                     {processing ? "Signing in..." : "Sign In"}
-                                </ConfirmButton>
+                                </Button>
 
                                 {canRegister && (
                                     <p className="text-center text-muted-foreground">

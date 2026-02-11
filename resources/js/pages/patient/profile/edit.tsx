@@ -1,9 +1,10 @@
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
@@ -11,7 +12,7 @@ import { Form, Head, usePage } from '@inertiajs/react';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Profile',
-        href: '/patient/profile',
+        href: '/profile',
     },
 ];
 
@@ -19,10 +20,10 @@ export default function EditProfile() {
     const { auth } = usePage<SharedData>().props;
 
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Profile" />
 
-            <div className="mx-auto max-w-2xl p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Profile Information"
@@ -30,7 +31,7 @@ export default function EditProfile() {
                     />
 
                     <Form
-                        action="/patient/profile"
+                        action="/profile"
                         method="put"
                         options={{
                             preserveScroll: true,
@@ -89,10 +90,11 @@ export default function EditProfile() {
                                         <Label htmlFor="date_of_birth">
                                             Date of Birth
                                         </Label>
-                                        <Input
+                                        <DatePicker
                                             id="date_of_birth"
-                                            type="date"
                                             name="date_of_birth"
+                                            variant="dob"
+                                            placeholder="Select date of birth"
                                         />
                                         <InputError
                                             message={errors.date_of_birth}
@@ -143,6 +145,6 @@ export default function EditProfile() {
                     </Form>
                 </div>
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

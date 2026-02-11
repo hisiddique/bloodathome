@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
  * Base authentication table for all user types (patients, providers, admins)
  * Contains common authentication and profile fields
  */
-class User extends Authenticatable implements FilamentUser, HasName
+class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasRoles, HasUlids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'first_name',
         'middle_name',
         'last_name',
+        'date_of_birth',
         'email',
         'phone',
         'profile_image',
@@ -48,7 +49,7 @@ class User extends Authenticatable implements FilamentUser, HasName
      *
      * @var list<string>
      */
-    protected $appends = ['full_name'];
+    protected $appends = ['full_name', 'initials'];
 
     /**
      * Get the user's full name (computed from first, middle, last).
@@ -60,6 +61,17 @@ class User extends Authenticatable implements FilamentUser, HasName
             $this->middle_name,
             $this->last_name,
         ])));
+    }
+
+    /**
+     * Get the user's initials (computed from first and last name).
+     */
+    public function getInitialsAttribute(): string
+    {
+        $firstInitial = $this->first_name ? strtoupper(substr($this->first_name, 0, 1)) : '';
+        $lastInitial = $this->last_name ? strtoupper(substr($this->last_name, 0, 1)) : '';
+
+        return $firstInitial.$lastInitial;
     }
 
     /**
@@ -90,6 +102,7 @@ class User extends Authenticatable implements FilamentUser, HasName
     protected function casts(): array
     {
         return [
+            'date_of_birth' => 'date',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
@@ -118,6 +131,14 @@ class User extends Authenticatable implements FilamentUser, HasName
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Get all dependents for this user.
+     */
+    public function dependents(): HasMany
+    {
+        return $this->hasMany(Dependent::class);
     }
 
     /**

@@ -7,6 +7,7 @@ import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
 
+import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,6 +141,7 @@ export default function Password() {
                         )}
                     </Form>
                 </div>
+                <DeleteUser />
             </SettingsLayout>
         </AppLayout>
     );

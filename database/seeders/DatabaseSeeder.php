@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
             // Services
             ServiceSeeder::class,
 
+            // Service collection mappings (links services to collection types)
+            ServiceCollectionMappingSeeder::class,
+
             // Test users (comment out in production)
             TestUsersSeeder::class,
         ]);

@@ -7,6 +7,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
 import { RegionProvider } from '@/contexts/region-context';
+import { Toaster } from '@/components/ui/sonner';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -24,6 +25,7 @@ createInertiaApp({
             <StrictMode>
                 <RegionProvider>
                     <App {...props} />
+                    <Toaster position="top-right" richColors closeButton />
                 </RegionProvider>
             </StrictMode>,
         );

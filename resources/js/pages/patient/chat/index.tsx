@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ConversationList, type ConversationItem } from '@/components/chat';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { MessageCircle, Search } from 'lucide-react';
@@ -33,7 +33,7 @@ interface ChatIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Messages',
-        href: '/patient/chat',
+        href: '/chat',
     },
 ];
 
@@ -62,10 +62,10 @@ export default function ChatIndex({ conversations = [] }: ChatIndexProps) {
     );
 
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Messages" />
 
-            <div className="mx-auto max-w-4xl p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold">Messages</h1>
                     <p className="text-muted-foreground">
@@ -105,10 +105,10 @@ export default function ChatIndex({ conversations = [] }: ChatIndexProps) {
                 ) : (
                     <ConversationList
                         conversations={conversationItems}
-                        basePath="/patient/chat"
+                        basePath="/chat"
                     />
                 )}
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

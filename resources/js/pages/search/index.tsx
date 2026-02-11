@@ -1,5 +1,5 @@
 import { router, Head } from "@inertiajs/react";
-import { ChatButton } from "@/components/booking/chat-button";
+import { ChatButton } from "@/components/ui/chat-button";
 import { PhlebotomistFinder } from "@/components/phlebotomist/finder";
 import PublicLayout from "@/layouts/public-layout";
 
@@ -18,39 +18,8 @@ export default function FindPhlebotomist() {
     visitType?: "home" | "clinic";
     coordinates?: [number, number];
   }) => {
-    // Navigate to search results with the selected options
-    const params = new URLSearchParams({
-      collection: data.collectionType,
-      under16: String(data.isUnder16),
-    });
-
-    if (data.postCode) {
-      params.set("postcode", data.postCode);
-    }
-
-    if (data.coordinates) {
-      params.set("lng", String(data.coordinates[0]));
-      params.set("lat", String(data.coordinates[1]));
-    }
-
-    if (data.selectedTest) {
-      params.set("testId", data.selectedTest.id);
-      params.set("testName", data.selectedTest.name);
-      params.set(
-        "price",
-        String(
-          data.visitType === "home"
-            ? data.selectedTest.price
-            : data.selectedTest.clinicPrice
-        )
-      );
-    }
-
-    if (data.visitType) {
-      params.set("visitType", data.visitType);
-    }
-
-    router.visit(`/search/results?${params.toString()}`);
+    // Navigate to booking wizard
+    router.visit('/book');
   };
 
   return (

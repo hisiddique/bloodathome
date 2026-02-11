@@ -1,12 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { type Service, type Provider, type TimeSlot, type BookingStep } from '@/types';
-
-export interface BookingLocation {
-    postcode: string;
-    lat: number;
-    lng: number;
-    address?: string;
-}
+import { type Service, type Provider, type TimeSlot, type BookingStep, type BookingLocation } from '@/types';
 
 export interface PatientDetailsData {
     firstName: string;
@@ -19,6 +12,8 @@ export interface PatientDetailsData {
     guardianName?: string;
     guardianConfirmed?: boolean;
     notes?: string;
+    isGuest?: boolean;
+    dependentId?: string | null;
 }
 
 interface BookingState {
@@ -37,6 +32,8 @@ interface BookingState {
 
     // Step 3: Provider
     selectedProvider: Provider | null;
+    bookedServices: Service[];
+    providerServicePrices: Record<string, number>;
 
     // Step 4: Patient Details
     patientDetails: PatientDetailsData | null;
@@ -47,6 +44,9 @@ interface BookingState {
     totalAmount: number;
     promoCode?: string;
     discount?: number;
+
+    // Step 6: Success
+    confirmationNumber: string | null;
 }
 
 interface BookingActions {
@@ -59,14 +59,17 @@ interface BookingActions {
     setLocation: (location: BookingLocation) => void;
     setSelectedDate: (date: Date) => void;
     setTimeOfDay: (timeOfDay: 'morning' | 'afternoon' | 'evening') => void;
-    setSelectedSlot: (slot: TimeSlot) => void;
+    setSelectedSlot: (slot: TimeSlot | null) => void;
     setSelectedProvider: (provider: Provider) => void;
+    setBookedServices: (services: Service[]) => void;
+    setProviderServicePrices: (prices: Record<string, number>) => void;
     setPatientDetails: (details: PatientDetailsData) => void;
     setDraftId: (id: string) => void;
     setPaymentIntentClientSecret: (secret: string) => void;
     setTotalAmount: (amount: number) => void;
     setPromoCode: (code: string) => void;
     setDiscount: (discount: number) => void;
+    setConfirmationNumber: (number: string) => void;
     clearBooking: () => void;
     goBack: () => void;
     goToStep: (step: BookingStep) => void;
@@ -77,6 +80,7 @@ type BookingContextType = BookingState & BookingActions;
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 const BOOKING_STORAGE_KEY = 'bloodathome_booking_draft';
+const DRAFT_EXPIRY_MS = 60 * 60 * 1000; // 1 hour in milliseconds
 
 const initialState: BookingState = {
     step: 'collection',
@@ -88,16 +92,20 @@ const initialState: BookingState = {
     timeOfDay: null,
     selectedSlot: null,
     selectedProvider: null,
+    bookedServices: [],
+    providerServicePrices: {},
     patientDetails: null,
     draftId: null,
     paymentIntentClientSecret: null,
     totalAmount: 0,
     promoCode: undefined,
     discount: undefined,
+    confirmationNumber: null,
 };
 
 export function BookingProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<BookingState>(initialState);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Load from localStorage on mount
     useEffect(() => {
@@ -105,33 +113,60 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             const saved = localStorage.getItem(BOOKING_STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
+
+                // Check if draft has expired (1 hour)
+                if (parsed._savedAt) {
+                    const savedAt = new Date(parsed._savedAt).getTime();
+                    const now = Date.now();
+                    if (now - savedAt > DRAFT_EXPIRY_MS) {
+                        // Draft expired, clear it
+                        localStorage.removeItem(BOOKING_STORAGE_KEY);
+                        setIsInitialized(true);
+                        return;
+                    }
+                }
+
                 // Restore dates as Date objects
                 if (parsed.selectedDate) {
                     parsed.selectedDate = new Date(parsed.selectedDate);
                 }
+
+                // Remove metadata before setting state
+                delete parsed._savedAt;
+
                 setState({ ...initialState, ...parsed });
             }
         } catch (error) {
             console.error('Error loading booking draft:', error);
         }
+        // Mark as initialized after loading attempt
+        setIsInitialized(true);
     }, []);
 
-    // Save to localStorage whenever state changes
+    // Save to localStorage whenever state changes (only after initialization)
     useEffect(() => {
+        // Don't save until we've loaded the existing draft
+        if (!isInitialized) {
+            return;
+        }
+
         try {
             const toSave = {
                 ...state,
                 // Don't save payment secrets
                 paymentIntentClientSecret: null,
+                // Add timestamp for expiry check
+                _savedAt: new Date().toISOString(),
             };
             localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(toSave));
         } catch (error) {
             console.error('Error saving booking draft:', error);
         }
-    }, [state]);
+    }, [state, isInitialized]);
 
     const setStep = (step: BookingStep) => {
         setState((prev) => ({ ...prev, step }));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const setCollectionType = (type: 'home_visit' | 'clinic') => {
@@ -172,12 +207,20 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setState((prev) => ({ ...prev, timeOfDay }));
     };
 
-    const setSelectedSlot = (slot: TimeSlot) => {
+    const setSelectedSlot = (slot: TimeSlot | null) => {
         setState((prev) => ({ ...prev, selectedSlot: slot }));
     };
 
     const setSelectedProvider = (provider: Provider) => {
         setState((prev) => ({ ...prev, selectedProvider: provider }));
+    };
+
+    const setBookedServices = (services: Service[]) => {
+        setState((prev) => ({ ...prev, bookedServices: services }));
+    };
+
+    const setProviderServicePrices = (prices: Record<string, number>) => {
+        setState((prev) => ({ ...prev, providerServicePrices: prices }));
     };
 
     const setPatientDetails = (details: PatientDetailsData) => {
@@ -204,16 +247,35 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setState((prev) => ({ ...prev, discount }));
     };
 
+    const setConfirmationNumber = (number: string) => {
+        setState((prev) => ({ ...prev, confirmationNumber: number }));
+    };
+
     const clearBooking = () => {
         setState(initialState);
         localStorage.removeItem(BOOKING_STORAGE_KEY);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const goBack = () => {
         const stepOrder: BookingStep[] = ['collection', 'location', 'provider', 'patient', 'payment', 'success'];
         const currentIndex = stepOrder.indexOf(state.step);
         if (currentIndex > 0) {
-            setState((prev) => ({ ...prev, step: stepOrder[currentIndex - 1] }));
+            const targetStep = stepOrder[currentIndex - 1];
+            const updates: Partial<BookingState> = { step: targetStep };
+
+            // Reset provider selection when going back to location or earlier
+            const targetIndex = stepOrder.indexOf(targetStep);
+            const providerIndex = stepOrder.indexOf('provider');
+            if (targetIndex < providerIndex) {
+                updates.selectedProvider = null;
+                updates.selectedSlot = null;
+                updates.bookedServices = [];
+                updates.providerServicePrices = {};
+            }
+
+            setState((prev) => ({ ...prev, ...updates }));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
@@ -224,7 +286,19 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
         // Only allow going to previous steps or the immediate next step
         if (targetIndex <= currentIndex) {
-            setState((prev) => ({ ...prev, step }));
+            const updates: Partial<BookingState> = { step };
+
+            // Reset provider selection when going back to before provider step
+            const providerIndex = stepOrder.indexOf('provider');
+            if (targetIndex < providerIndex && currentIndex >= providerIndex) {
+                updates.selectedProvider = null;
+                updates.selectedSlot = null;
+                updates.bookedServices = [];
+                updates.providerServicePrices = {};
+            }
+
+            setState((prev) => ({ ...prev, ...updates }));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
@@ -241,12 +315,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setTimeOfDay,
         setSelectedSlot,
         setSelectedProvider,
+        setBookedServices,
+        setProviderServicePrices,
         setPatientDetails,
         setDraftId,
         setPaymentIntentClientSecret,
         setTotalAmount,
         setPromoCode,
         setDiscount,
+        setConfirmationNumber,
         clearBooking,
         goBack,
         goToStep,

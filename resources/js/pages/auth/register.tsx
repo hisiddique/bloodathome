@@ -1,16 +1,25 @@
-import { useState } from "react";
-import { Link } from "@inertiajs/react";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
-import { ConfirmButton } from "@/components/booking/confirm-button";
+import { useState } from 'react';
+import { Link, router } from "@inertiajs/react";
+import { Mail, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import InputError from '@/components/input-error';
+import { PasswordInput } from '@/components/ui/password-input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Checkbox } from '@/components/ui/checkbox';
 import PublicLayout from '@/layouts/public-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 import { Form, Head } from '@inertiajs/react';
 import { toast } from 'sonner';
 
-export default function Register() {
-    const [showPassword, setShowPassword] = useState(false);
+interface RegisterProps {
+    redirect?: string;
+}
+
+export default function Register({ redirect }: RegisterProps) {
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    // Get redirect from URL query params if not passed as prop
+    const redirectUrl = redirect || new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
 
     return (
         <>
@@ -28,27 +37,67 @@ export default function Register() {
                             toast.success("Account created!", {
                                 description: "Welcome to BloodAtHome",
                             });
+                            // Redirect to intended URL after successful registration
+                            if (redirectUrl && redirectUrl !== '/dashboard') {
+                                router.visit(redirectUrl);
+                            }
                         }}
                     >
                         {({ processing, errors }) => (
                             <>
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                                        Full Name *
-                                    </label>
-                                    <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
-                                        <input
-                                            id="name"
-                                            type="text"
-                                            name="name"
-                                            required
-                                            autoFocus
-                                            placeholder="Enter your full name"
-                                            className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                        />
+                                {/* Hidden field for redirect URL */}
+                                <input type="hidden" name="redirect" value={redirectUrl} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="first_name" className="block text-sm font-medium text-foreground mb-2">
+                                            First Name *
+                                        </label>
+                                        <div className="relative">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
+                                            <input
+                                                id="first_name"
+                                                type="text"
+                                                name="first_name"
+                                                required
+                                                autoFocus
+                                                placeholder="First name"
+                                                className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                            />
+                                        </div>
+                                        <InputError message={errors.first_name} />
                                     </div>
-                                    <InputError message={errors.name} />
+
+                                    <div>
+                                        <label htmlFor="last_name" className="block text-sm font-medium text-foreground mb-2">
+                                            Last Name *
+                                        </label>
+                                        <div className="relative">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
+                                            <input
+                                                id="last_name"
+                                                type="text"
+                                                name="last_name"
+                                                required
+                                                placeholder="Last name"
+                                                className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                            />
+                                        </div>
+                                        <InputError message={errors.last_name} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="date_of_birth" className="block text-sm font-medium text-foreground mb-2">
+                                        Date of Birth *
+                                    </label>
+                                    <DatePicker
+                                        id="date_of_birth"
+                                        name="date_of_birth"
+                                        placeholder="Select your date of birth"
+                                        variant="dob-adult"
+                                        required
+                                    />
+                                    <InputError message={errors.date_of_birth} />
                                 </div>
 
                                 <div>
@@ -73,25 +122,12 @@ export default function Register() {
                                     <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                                         Password *
                                     </label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
-                                        <input
-                                            id="password"
-                                            type={showPassword ? "text" : "password"}
-                                            name="password"
-                                            required
-                                            placeholder="Create a password"
-                                            className="w-full pl-12 pr-12 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            aria-label={showPassword ? "Hide password" : "Show password"}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                                        >
-                                            {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
-                                        </button>
-                                    </div>
+                                    <PasswordInput
+                                        id="password"
+                                        name="password"
+                                        required
+                                        placeholder="Create a password"
+                                    />
                                     <InputError message={errors.password} />
                                 </div>
 
@@ -99,30 +135,65 @@ export default function Register() {
                                     <label htmlFor="password_confirmation" className="block text-sm font-medium text-foreground mb-2">
                                         Confirm Password *
                                     </label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
-                                        <input
-                                            id="password_confirmation"
-                                            type={showPassword ? "text" : "password"}
-                                            name="password_confirmation"
-                                            required
-                                            placeholder="Confirm your password"
-                                            className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                                        />
-                                    </div>
+                                    <PasswordInput
+                                        id="password_confirmation"
+                                        name="password_confirmation"
+                                        required
+                                        placeholder="Confirm your password"
+                                    />
                                     <InputError message={errors.password_confirmation} />
                                 </div>
 
+                                <div className="pt-2">
+                                    <div className="flex items-start gap-3">
+                                        <Checkbox
+                                            id="terms_accepted"
+                                            checked={termsAccepted}
+                                            onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                                            className="mt-1"
+                                        />
+                                        <input type="hidden" name="terms_accepted" value={termsAccepted ? '1' : '0'} />
+                                        <label htmlFor="terms_accepted" className="text-sm text-foreground leading-relaxed">
+                                            I confirm that I am 18 years or older, or I have the consent of a parent/guardian. I agree to the{" "}
+                                            <a href="#" className="text-primary font-medium hover:underline">
+                                                Terms & Conditions
+                                            </a>{" "}
+                                            and{" "}
+                                            <a href="#" className="text-primary font-medium hover:underline">
+                                                Privacy Policy
+                                            </a>
+                                            . *
+                                        </label>
+                                    </div>
+                                    <InputError message={errors.terms_accepted} />
+                                </div>
+
                                 <div className="pt-4">
-                                    <ConfirmButton type="submit" disabled={processing}>
+                                    <Button type="submit" disabled={processing || !termsAccepted} className="w-full py-6 text-base">
                                         {processing ? "Creating Account..." : "Create Account"}
-                                    </ConfirmButton>
+                                    </Button>
                                 </div>
 
                                 <p className="text-center text-muted-foreground">
                                     Already have an account?{" "}
                                     <Link href={login()} className="text-primary font-semibold">
                                         Sign In
+                                    </Link>
+                                </p>
+
+                                <div className="relative my-6">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-border"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-4 bg-background text-muted-foreground">or</span>
+                                    </div>
+                                </div>
+
+                                <p className="text-center text-muted-foreground">
+                                    Are you a phlebotomist?{" "}
+                                    <Link href="/become-phlebotomist" className="text-primary font-semibold">
+                                        Join our network
                                     </Link>
                                 </p>
                             </>

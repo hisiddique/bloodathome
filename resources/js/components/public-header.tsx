@@ -4,15 +4,23 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import AppLogo from './app-logo';
 import { cn, isSameUrl } from '@/lib/utils';
-import type { SharedData } from '@/types';
+import type { PageProps } from '@/types';
 
 interface PublicHeaderProps {
     onMenuToggle: () => void;
 }
 
 export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
-    const page = usePage<SharedData>();
+    const { props, url } = usePage<PageProps>();
+    const { auth } = props;
     const { t } = useTranslation();
+
+    const isAuthenticated = !!auth?.user;
+
+    // Determine dashboard URL based on user role
+    const getDashboardUrl = () => {
+        return '/dashboard';
+    };
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -43,7 +51,7 @@ export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
                         prefetch
                         className={cn(
                             "text-sm font-medium transition-colors duration-200 hover:text-primary",
-                            isSameUrl(page.url, '/')
+                            isSameUrl(url, '/')
                                 ? "text-foreground"
                                 : "text-muted-foreground"
                         )}
@@ -51,23 +59,35 @@ export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
                         <span>{t('Home')}</span>
                     </Link>
                     <Link
-                        href="/search"
+                        href="/book"
                         prefetch
                         className={cn(
                             "text-sm font-medium transition-colors duration-200 hover:text-primary",
-                            isSameUrl(page.url, '/search')
+                            isSameUrl(url, '/book')
                                 ? "text-foreground"
                                 : "text-muted-foreground"
                         )}
                     >
-                        <span>{t('Find a Phlebotomist')}</span>
+                        <span>{t('Book Now')}</span>
+                    </Link>
+                    <Link
+                        href="/become-phlebotomist"
+                        prefetch
+                        className={cn(
+                            "text-sm font-medium transition-colors duration-200 hover:text-primary",
+                            isSameUrl(url, '/become-phlebotomist')
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                        )}
+                    >
+                        <span>{t('Become a Phlebotomist')}</span>
                     </Link>
                     <Link
                         href="/faq"
                         prefetch
                         className={cn(
                             "text-sm font-medium transition-colors duration-200 hover:text-primary",
-                            isSameUrl(page.url, '/faq')
+                            isSameUrl(url, '/faq')
                                 ? "text-foreground"
                                 : "text-muted-foreground"
                         )}
@@ -78,22 +98,34 @@ export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
-                    <Link
-                        href="/bookings"
-                        className="hidden lg:inline-flex text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary"
-                    >
-                        {t('My Bookings')}
-                    </Link>
-                    <Button variant="ghost" className="hidden lg:inline-flex" asChild>
-                        <Link href="/login">
-                            {t('Log in')}
-                        </Link>
-                    </Button>
-                    <Button className="hidden lg:inline-flex" asChild>
-                        <Link href="/register">
-                            {t('Sign up')}
-                        </Link>
-                    </Button>
+                    {isAuthenticated ? (
+                        <>
+                            <Link
+                                href="/bookings"
+                                className="hidden lg:inline-flex text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary"
+                            >
+                                {t('My Bookings')}
+                            </Link>
+                            <Button variant="ghost" className="hidden lg:inline-flex" asChild>
+                                <Link href={getDashboardUrl()}>
+                                    {t('Dashboard')}
+                                </Link>
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button variant="ghost" className="hidden lg:inline-flex" asChild>
+                                <Link href="/login">
+                                    {t('Log in')}
+                                </Link>
+                            </Button>
+                            <Button className="hidden lg:inline-flex" asChild>
+                                <Link href="/register">
+                                    {t('Sign up')}
+                                </Link>
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
         </header>

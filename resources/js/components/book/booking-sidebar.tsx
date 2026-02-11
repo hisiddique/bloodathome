@@ -1,6 +1,18 @@
-import { Check } from 'lucide-react';
+import { useState } from 'react';
+import { Check, RefreshCw } from 'lucide-react';
 import { type BookingStep } from '@/types';
 import { cn } from '@/lib/utils';
+import { useBooking } from '@/contexts/booking-context';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface BookingSidebarProps {
     currentStep: BookingStep;
@@ -8,22 +20,56 @@ interface BookingSidebarProps {
 }
 
 const steps: { key: BookingStep; label: string; description: string }[] = [
-    { key: 'collection', label: 'Collection & Services', description: 'Choose test type' },
-    { key: 'location', label: 'Location & Time', description: 'When and where' },
-    { key: 'provider', label: 'Provider', description: 'Select professional' },
+    { key: 'collection', label: 'Services', description: 'Select your tests' },
+    { key: 'location', label: 'Location & Date', description: 'Where and when' },
+    { key: 'provider', label: 'Provider & Time', description: 'Choose professional' },
     { key: 'patient', label: 'Patient Details', description: 'Your information' },
     { key: 'payment', label: 'Payment', description: 'Complete booking' },
 ];
 
 export function BookingSidebar({ currentStep, onStepClick }: BookingSidebarProps) {
     const currentIndex = steps.findIndex((s) => s.key === currentStep);
+    const { clearBooking } = useBooking();
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const handleStartOver = () => {
+        clearBooking();
+        setDialogOpen(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     return (
         <aside className="w-full">
             {/* Desktop Sidebar */}
-            <div className="hidden lg:block sticky top-8">
+            <div className="hidden lg:block">
                 <div className="space-y-4">
-                    <h2 className="text-lg font-semibold text-foreground mb-6">Booking Progress</h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-semibold text-foreground">Booking Progress</h2>
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                                    <RefreshCw className="w-4 h-4 mr-1" />
+                                    Start Over
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Start over?</DialogTitle>
+                                    <DialogDescription>
+                                        This will clear all your selections and start a new booking. This action cannot be undone.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="gap-3">
+                                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={handleStartOver}>
+                                        Yes, start over
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                     {steps.map((step, index) => {
                         const isCompleted = index < currentIndex;
                         const isCurrent = step.key === currentStep;
@@ -80,9 +126,35 @@ export function BookingSidebar({ currentStep, onStepClick }: BookingSidebarProps
                     <span className="text-sm font-medium text-foreground">
                         Step {currentIndex + 1} of {steps.length}
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                        {steps[currentIndex]?.label}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                            {steps[currentIndex]?.label}
+                        </span>
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
+                                    <RefreshCw className="w-3 h-3 mr-1" />
+                                    Reset
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Start over?</DialogTitle>
+                                    <DialogDescription>
+                                        This will clear all your selections and start a new booking. This action cannot be undone.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="gap-3">
+                                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={handleStartOver}>
+                                        Yes, start over
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
                 <div className="flex gap-1">
                     {steps.map((step, index) => (

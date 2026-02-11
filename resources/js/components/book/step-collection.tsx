@@ -61,10 +61,10 @@ export function StepCollection() {
         const query = searchQuery.toLowerCase();
         const filtered = services.filter(
             (service) =>
-                service.service_name.toLowerCase().includes(query) ||
-                service.service_code.toLowerCase().includes(query) ||
+                service.service_name?.toLowerCase().includes(query) ||
+                service.service_code?.toLowerCase().includes(query) ||
                 service.service_description?.toLowerCase().includes(query) ||
-                service.category.name.toLowerCase().includes(query)
+                service.category?.name?.toLowerCase().includes(query)
         );
         setFilteredServices(filtered);
     }, [searchQuery, services]);
@@ -95,8 +95,6 @@ export function StepCollection() {
 
         setStep('location');
     };
-
-    const totalCost = selectedServices.reduce((sum, service) => sum + (service.base_price || 0), 0);
 
     if (isLoading) {
         return (
@@ -251,7 +249,7 @@ export function StepCollection() {
                                     )}
                                     role="checkbox"
                                     aria-checked={isSelected}
-                                    aria-label={`${service.service_name}, £${(service.base_price || 0).toFixed(2)}`}
+                                    aria-label={service.service_name}
                                 >
                                     <div className="flex items-start gap-3">
                                         <div
@@ -268,16 +266,13 @@ export function StepCollection() {
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-foreground">{service.service_name}</div>
                                             <div className="text-xs text-muted-foreground mt-1">
-                                                {service.service_code} • {service.category.name}
+                                                {service.service_code} • {service.category?.name}
                                             </div>
                                             {service.service_description && (
                                                 <div className="text-xs text-muted-foreground mt-2 line-clamp-2">
                                                     {service.service_description}
                                                 </div>
                                             )}
-                                        </div>
-                                        <div className="text-sm font-medium text-foreground whitespace-nowrap">
-                                            £{(service.base_price || 0).toFixed(2)}
                                         </div>
                                     </div>
                                 </button>
@@ -286,36 +281,6 @@ export function StepCollection() {
                     )}
                 </div>
             </div>
-
-            {/* Selected Services Summary */}
-            {selectedServices.length > 0 && (
-                <div className="bg-card border border-border rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-foreground">Selected Tests</span>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedServices([])}
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                        >
-                            Clear all
-                        </button>
-                    </div>
-                    <div className="space-y-2">
-                        {selectedServices.map((service) => (
-                            <div key={service.id} className="flex items-center justify-between text-sm">
-                                <span className="text-foreground truncate">{service.service_name}</span>
-                                <span className="font-medium text-foreground whitespace-nowrap ml-2">
-                                    £{(service.base_price || 0).toFixed(2)}
-                                </span>
-                            </div>
-                        ))}
-                        <div className="flex items-center justify-between text-base font-semibold pt-2 border-t border-border">
-                            <span className="text-foreground">Subtotal</span>
-                            <span className="text-primary">£{totalCost.toFixed(2)}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Continue Button */}
             <div className="pt-4">

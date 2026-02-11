@@ -32,8 +32,10 @@ return new class extends Migration
             $table->unique('booking_id');
         });
 
-        // Add check constraint for rating (1-5)
-        DB::statement('ALTER TABLE reviews ADD CONSTRAINT reviews_rating_check CHECK (rating >= 1 AND rating <= 5)');
+        // Add check constraint for rating (1-5) - SQLite compatible
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE reviews ADD CONSTRAINT reviews_rating_check CHECK (rating >= 1 AND rating <= 5)');
+        }
     }
 
     /**

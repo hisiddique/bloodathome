@@ -72,7 +72,7 @@ class BookingFactory extends Factory
             'visit_instructions' => fake()->randomElement($visitInstructions),
             'patient_notes' => fake()->optional(0.3)->sentence(),
             'guardian_name' => fake()->optional(0.1)->name(),
-            'guardian_confirmed' => fake()->optional(0.1)->boolean(),
+            'guardian_confirmed' => false,
             'draft_token' => null,
             'draft_expires_at' => null,
             'cancelled_at' => null,

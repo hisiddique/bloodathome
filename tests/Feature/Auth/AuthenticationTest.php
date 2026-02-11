@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
@@ -11,6 +12,14 @@ use Tests\TestCase;
 class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Seed roles and permissions for tests
+        $this->seed(RoleAndPermissionSeeder::class);
+    }
 
     public function test_login_screen_can_be_rendered()
     {
@@ -22,6 +31,8 @@ class AuthenticationTest extends TestCase
     public function test_users_can_authenticate_using_the_login_screen()
     {
         $user = User::factory()->withoutTwoFactor()->create();
+        $user->markEmailAsVerified();
+        $user->assignRole('patient');
 
         $response = $this->post(route('login.store'), [
             'email' => $user->email,
@@ -29,7 +40,21 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect('/dashboard');
+    }
+
+    public function test_unverified_users_are_redirected_to_verify_email()
+    {
+        $user = User::factory()->withoutTwoFactor()->unverified()->create();
+        $user->assignRole('patient');
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('verification.notice'));
     }
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()

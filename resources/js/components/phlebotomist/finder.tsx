@@ -9,8 +9,8 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { ConfirmButton } from "@/components/booking/confirm-button";
-import { LocationSearch } from "@/components/booking/location-search";
+import { Button } from "@/components/ui/button";
+import { LocationSearch } from "@/components/ui/location-search";
 
 type CollectionType = "nhs" | "private" | "home-visit" | "clinic-visit" | null;
 type VisitType = "home" | "clinic";
@@ -346,12 +346,12 @@ export function PhlebotomistFinder({ onSearch }: PhlebotomistFinderProps) {
         </div>
 
         {/* Continue Button */}
-        <ConfirmButton
+        <Button
           onClick={() => setStep("location")}
           disabled={isUnder16 === null}
         >
           Continue to Location
-        </ConfirmButton>
+        </Button>
       </div>
     );
   }
@@ -415,12 +415,12 @@ export function PhlebotomistFinder({ onSearch }: PhlebotomistFinderProps) {
         </div>
 
         {/* Search Button */}
-        <ConfirmButton onClick={handleSearch}>
+        <Button onClick={handleSearch}>
           <span className="flex items-center justify-center gap-2">
             <Search className="w-5 h-5" />
             Find {collectionType === "nhs" ? "NHS Services" : "Private Services"}
           </span>
-        </ConfirmButton>
+        </Button>
       </div>
     );
   }
@@ -589,12 +589,12 @@ export function PhlebotomistFinder({ onSearch }: PhlebotomistFinderProps) {
       )}
 
       {/* Search Button */}
-      <ConfirmButton onClick={handleSearch} disabled={!isFormValid}>
+      <Button onClick={handleSearch} disabled={!isFormValid}>
         <span className="flex items-center justify-center gap-2">
           <Search className="w-5 h-5" />
           Search for Phlebotomists
         </span>
-      </ConfirmButton>
+      </Button>
     </div>
   );
 }

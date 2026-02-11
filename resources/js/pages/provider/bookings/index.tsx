@@ -15,7 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Calendar, Clock, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -54,11 +54,11 @@ interface ProviderBookingsIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Bookings',
-        href: '/provider/bookings',
+        href: '/bookings',
     },
 ];
 
@@ -78,7 +78,7 @@ export default function ProviderBookingsIndex({
     const handleStatusFilter = (value: string) => {
         setStatusFilter(value);
         router.get(
-            '/provider/bookings',
+            '/bookings',
             { status: value === 'all' ? undefined : value },
             { preserveState: true },
         );
@@ -91,7 +91,7 @@ export default function ProviderBookingsIndex({
     };
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bookings" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="flex items-center justify-between">
@@ -198,7 +198,7 @@ export default function ProviderBookingsIndex({
                                             </TableCell>
                                             <TableCell>
                                                 <Link
-                                                    href={`/provider/bookings/${booking.id}`}
+                                                    href={`/bookings/${booking.id}`}
                                                 >
                                                     <Button
                                                         variant="ghost"
@@ -249,6 +249,6 @@ export default function ProviderBookingsIndex({
                     )}
                 </div>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

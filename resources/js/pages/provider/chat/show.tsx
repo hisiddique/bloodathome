@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageThread, type Message } from '@/components/chat';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Send } from 'lucide-react';
@@ -46,11 +46,11 @@ interface ProviderChatShowProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Messages',
-        href: '/provider/chat',
+        href: '/chat',
     },
     {
         title: 'Conversation',
@@ -83,7 +83,7 @@ export default function ProviderChatShow({
             return;
         }
 
-        post(`/provider/chat/${booking.id}`, {
+        post(`/chat/${booking.id}`, {
             onSuccess: () => {
                 reset();
             },
@@ -99,7 +99,7 @@ export default function ProviderChatShow({
     }));
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Chat - ${booking.patient_name}`} />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <Card className="flex flex-1 flex-col">
@@ -158,6 +158,6 @@ export default function ProviderChatShow({
                     </CardContent>
                 </Card>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

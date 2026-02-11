@@ -10,7 +10,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -65,11 +65,11 @@ export default function BookingShow({ booking }: BookingShowProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'My Bookings',
-            href: '/patient/bookings',
+            href: '/bookings',
         },
         {
             title: `Booking #${booking.id.slice(0, 8)}`,
-            href: `/patient/bookings/${booking.id}`,
+            href: `/bookings/${booking.id}`,
         },
     ];
 
@@ -79,7 +79,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                 'Are you sure you want to cancel this booking? This action cannot be undone.',
             )
         ) {
-            router.delete(`/patient/bookings/${booking.id}`);
+            router.delete(`/bookings/${booking.id}`);
         }
     };
 
@@ -99,10 +99,10 @@ export default function BookingShow({ booking }: BookingShowProps) {
     };
 
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Booking #${booking.id.slice(0, 8)}`} />
 
-            <div className="mx-auto max-w-4xl p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold">
@@ -208,7 +208,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                 </CardHeader>
                                 <CardContent>
                                     <Form
-                                        action={`/patient/bookings/${booking.id}/review`}
+                                        action={`/bookings/${booking.id}/review`}
                                         method="post"
                                         className="space-y-4"
                                     >
@@ -348,7 +348,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                 <Separator />
 
                                 <Link
-                                    href={`/patient/chat?booking_id=${booking.id}`}
+                                    href={`/chat?booking_id=${booking.id}`}
                                 >
                                     <Button variant="outline" className="w-full">
                                         <MessageCircle className="mr-2 size-4" />
@@ -393,6 +393,6 @@ export default function BookingShow({ booking }: BookingShowProps) {
                     </div>
                 </div>
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

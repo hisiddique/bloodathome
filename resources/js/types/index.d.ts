@@ -27,20 +27,27 @@ export interface SharedData {
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    settings: {
+        app_name: string;
+        logo?: string;
+        favicon?: string;
+        date_format: string;
+    };
     [key: string]: unknown;
 }
 
 export interface User {
-    id: number;
-    name: string;
+    id: string;
+    first_name: string;
+    last_name: string;
+    full_name: string;
+    initials: string;
     email: string;
     phone?: string;
-    avatar?: string;
-    email_verified_at: string | null;
-    two_factor_enabled?: boolean;
-    created_at: string;
-    updated_at: string;
-    [key: string]: unknown; // This allows for additional properties...
+    profile_image?: string;
+    patient_id?: string;
+    provider_id?: string;
+    [key: string]: unknown;
 }
 
 export interface UserAddress {
@@ -109,6 +116,11 @@ export interface Provider {
     show_image_in_search: boolean;
     distance_km?: number;
     provider_services?: ProviderService[];
+    services_matched?: number;
+    services_total?: number;
+    matched_services?: MatchedService[];
+    unmatched_services?: UnmatchedService[];
+    total_price?: number;
 }
 
 export interface ProviderService {
@@ -117,10 +129,20 @@ export interface ProviderService {
     base_cost: number;
 }
 
+export interface MatchedService {
+    id: string;
+    name: string;
+    price: number;
+}
+
+export interface UnmatchedService {
+    id: string;
+    name: string;
+}
+
 export interface TimeSlot {
-    start_time: string;
-    end_time: string;
-    is_available: boolean;
+    time: string;
+    available: boolean;
 }
 
 export interface CollectionType {
@@ -147,6 +169,16 @@ export interface PlaceResult {
     lat: number;
     lng: number;
     formattedAddress: string;
+}
+
+export interface BookingLocation {
+    postcode: string;
+    lat: number;
+    lng: number;
+    address?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    townCity?: string;
 }
 
 export interface MapMarker {

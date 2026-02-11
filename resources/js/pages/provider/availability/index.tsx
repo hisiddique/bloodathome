@@ -15,7 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
@@ -36,11 +36,11 @@ interface ProviderAvailabilityIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Availability',
-        href: '/provider/availability',
+        href: '/availability',
     },
 ];
 
@@ -88,7 +88,7 @@ export default function ProviderAvailabilityIndex({
 
     const handleAddSlot = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/provider/availability', {
+        post('/availability', {
             onSuccess: () => {
                 setIsAddingSlot(false);
                 reset();
@@ -98,7 +98,7 @@ export default function ProviderAvailabilityIndex({
 
     const handleDeleteSlot = (id: string) => {
         if (confirm('Are you sure you want to delete this time slot?')) {
-            router.delete(`/provider/availability/${id}`);
+            router.delete(`/availability/${id}`);
         }
     };
 
@@ -114,7 +114,7 @@ export default function ProviderAvailabilityIndex({
     );
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Availability" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="flex items-center justify-between">
@@ -305,6 +305,6 @@ export default function ProviderAvailabilityIndex({
                     ))}
                 </div>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

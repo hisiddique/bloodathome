@@ -8,7 +8,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import {
@@ -45,11 +45,11 @@ interface ProviderBookingShowProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Bookings',
-        href: '/provider/bookings',
+        href: '/bookings',
     },
     {
         title: 'Booking Details',
@@ -62,7 +62,7 @@ export default function ProviderBookingShow({
 }: ProviderBookingShowProps) {
     const handleAccept = () => {
         router.post(
-            `/provider/bookings/${booking.id}/accept`,
+            `/bookings/${booking.id}/accept`,
             {},
             {
                 onSuccess: () => {
@@ -74,7 +74,7 @@ export default function ProviderBookingShow({
 
     const handleDecline = () => {
         router.post(
-            `/provider/bookings/${booking.id}/decline`,
+            `/bookings/${booking.id}/decline`,
             {},
             {
                 onSuccess: () => {
@@ -86,7 +86,7 @@ export default function ProviderBookingShow({
 
     const handleComplete = () => {
         router.post(
-            `/provider/bookings/${booking.id}/complete`,
+            `/bookings/${booking.id}/complete`,
             {},
             {
                 onSuccess: () => {
@@ -97,7 +97,7 @@ export default function ProviderBookingShow({
     };
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Booking - ${booking.patient_name}`} />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="flex items-center justify-between">
@@ -310,6 +310,6 @@ export default function ProviderBookingShow({
                     </div>
                 </div>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

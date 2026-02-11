@@ -13,18 +13,19 @@ return new class extends Migration
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignUlid('user_id')->nullable()->constrained('users')->restrictOnDelete();
+            $table->foreignUlid('dependent_id')->nullable()->constrained('dependents')->nullOnDelete();
             $table->foreignUlid('provider_id')->constrained('providers')->restrictOnDelete();
             $table->foreignId('status_id')->constrained('booking_statuses');
-            $table->string('confirmation_number', 50)->unique();
+            $table->string('confirmation_number', 50)->nullable()->unique();
             $table->foreignId('collection_type_id')->constrained('collection_types');
             $table->string('nhs_number', 20)->nullable();
             $table->date('scheduled_date');
             $table->string('time_slot', 20);
-            $table->string('service_address_line1', 255);
+            $table->string('service_address_line1', 255)->nullable();
             $table->string('service_address_line2', 255)->nullable();
-            $table->string('service_town_city', 100);
-            $table->string('service_postcode', 10);
+            $table->string('service_town_city', 100)->nullable();
+            $table->string('service_postcode', 10)->nullable();
             $table->decimal('grand_total_cost', 10, 2);
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->foreignUlid('promo_code_id')->nullable()->constrained('promo_codes');
@@ -35,6 +36,13 @@ return new class extends Migration
             $table->boolean('guardian_confirmed')->default(false);
             $table->string('draft_token', 255)->nullable();
             $table->timestamp('draft_expires_at')->nullable();
+
+            // Guest booking fields
+            $table->string('guest_email', 255)->nullable();
+            $table->string('guest_name', 255)->nullable();
+            $table->string('guest_phone', 50)->nullable();
+            $table->boolean('is_guest_booking')->default(false);
+
             $table->timestamps();
             $table->softDeletes();
             $table->timestamp('cancelled_at')->nullable();
@@ -44,6 +52,7 @@ return new class extends Migration
             $table->index('confirmation_number');
             $table->index('scheduled_date');
             $table->index('stripe_payment_intent_id');
+            $table->index('guest_email');
         });
     }
 

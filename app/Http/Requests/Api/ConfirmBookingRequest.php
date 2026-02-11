@@ -20,12 +20,25 @@ class ConfirmBookingRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('draft_id') && ! $this->has('booking_id')) {
+            $this->merge([
+                'booking_id' => $this->input('draft_id'),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
         return [
             'booking_id' => ['required', 'string', 'exists:bookings,id'],
+            'draft_id' => ['nullable', 'string'],
             'payment_intent_id' => ['required', 'string', 'starts_with:pi_'],
         ];
     }

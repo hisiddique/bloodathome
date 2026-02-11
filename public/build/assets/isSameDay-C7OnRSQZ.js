@@ -1,1 +1,0 @@
-import{t as i,c as o,n as c,s as r}from"./format-Dx8HDyBA.js";function D(e,a,s){const t=i(e,s?.in);return isNaN(a)?o(e,NaN):(a&&t.setDate(t.getDate()+a),t)}function u(e,a,s){const[t,n]=c(s?.in,e,a);return+r(t)==+r(n)}export{D as a,u as i};

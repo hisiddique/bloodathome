@@ -27,6 +27,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Admin',
                 'last_name' => 'User',
+                'date_of_birth' => '1980-01-01',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -40,6 +41,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Sarah',
                 'last_name' => 'Johnson',
+                'date_of_birth' => '1988-05-15',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -74,6 +76,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Michael',
                 'last_name' => 'Brown',
+                'date_of_birth' => '1992-08-20',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -103,6 +106,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'John',
                 'last_name' => 'Smith',
+                'date_of_birth' => '1985-06-15',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -125,6 +129,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Emily',
                 'last_name' => 'Davis',
+                'date_of_birth' => '1990-03-22',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -156,6 +161,13 @@ class TestUsersSeeder extends Seeder
                 ['Provider 3 (London)', 'north.london.clinic@bloodathome.com', 'password'],
                 ['Provider 4 (London)', 'emma.williams@bloodathome.com', 'password'],
                 ['Provider 5 (London)', 'city.diagnostics@bloodathome.com', 'password'],
+                ['Cluster Test (Same Loc)', 'james.clark@bloodathome.com', 'password'],
+                ['Cluster Test (Same Loc)', 'olivia.patel@bloodathome.com', 'password'],
+                ['Cluster Test (Same Loc)', 'david.wilson@bloodathome.com', 'password'],
+                ['Cluster Test (Close)', 'lisa.thompson@bloodathome.com', 'password'],
+                ['Cluster Test (Close)', 'robert.garcia@bloodathome.com', 'password'],
+                ['Cluster Test (Close)', 'sophie.lee@bloodathome.com', 'password'],
+                ['Cluster Test (Close)', 'mark.taylor@bloodathome.com', 'password'],
                 ['Patient', 'patient@bloodathome.com', 'password'],
                 ['Patient', 'emily@bloodathome.com', 'password'],
             ]
@@ -169,6 +181,231 @@ class TestUsersSeeder extends Seeder
         $this->createProvider3($admin);
         $this->createProvider4($admin);
         $this->createProvider5($admin);
+
+        // Create clustered providers for testing map clustering and spiderfy
+        $this->createClusteredProviders($admin);
+    }
+
+    /**
+     * Create providers at same/nearby locations to test map clustering and spiderfy.
+     */
+    private function createClusteredProviders(User $admin): void
+    {
+        $activeStatus = ProviderStatus::where('name', 'Active')->first();
+        $individualType = ProviderType::where('name', 'Individual')->first();
+
+        // Group 1: Same exact location (Westminster area) - for spiderfy testing
+        $sameLocationProviders = [
+            [
+                'email' => 'james.clark@bloodathome.com',
+                'first_name' => 'James',
+                'last_name' => 'Clark',
+                'provider_name' => 'James Clark Phlebotomy',
+                'latitude' => 51.5014,
+                'longitude' => -0.1419,
+                'rating' => 4.6,
+                'reviews' => 32,
+                'experience' => 6,
+            ],
+            [
+                'email' => 'olivia.patel@bloodathome.com',
+                'first_name' => 'Olivia',
+                'last_name' => 'Patel',
+                'provider_name' => 'Olivia Patel Health Services',
+                'latitude' => 51.5014,
+                'longitude' => -0.1419,
+                'rating' => 4.9,
+                'reviews' => 58,
+                'experience' => 9,
+            ],
+            [
+                'email' => 'david.wilson@bloodathome.com',
+                'first_name' => 'David',
+                'last_name' => 'Wilson',
+                'provider_name' => 'David Wilson Mobile Phlebotomy',
+                'latitude' => 51.5014,
+                'longitude' => -0.1419,
+                'rating' => 4.4,
+                'reviews' => 15,
+                'experience' => 3,
+            ],
+        ];
+
+        // Group 2: Very close locations (Soho area) - for cluster testing
+        $closeLocationProviders = [
+            [
+                'email' => 'lisa.thompson@bloodathome.com',
+                'first_name' => 'Lisa',
+                'last_name' => 'Thompson',
+                'provider_name' => 'Lisa Thompson - Soho Phlebotomist',
+                'latitude' => 51.5137,
+                'longitude' => -0.1337,
+                'rating' => 4.7,
+                'reviews' => 41,
+                'experience' => 7,
+            ],
+            [
+                'email' => 'robert.garcia@bloodathome.com',
+                'first_name' => 'Robert',
+                'last_name' => 'Garcia',
+                'provider_name' => 'Robert Garcia Health',
+                'latitude' => 51.5140,
+                'longitude' => -0.1340,
+                'rating' => 4.5,
+                'reviews' => 28,
+                'experience' => 4,
+            ],
+            [
+                'email' => 'sophie.lee@bloodathome.com',
+                'first_name' => 'Sophie',
+                'last_name' => 'Lee',
+                'provider_name' => 'Sophie Lee Blood Tests',
+                'latitude' => 51.5135,
+                'longitude' => -0.1335,
+                'rating' => 4.8,
+                'reviews' => 63,
+                'experience' => 11,
+            ],
+            [
+                'email' => 'mark.taylor@bloodathome.com',
+                'first_name' => 'Mark',
+                'last_name' => 'Taylor',
+                'provider_name' => 'Mark Taylor Phlebotomy Services',
+                'latitude' => 51.5138,
+                'longitude' => -0.1342,
+                'rating' => 4.3,
+                'reviews' => 19,
+                'experience' => 2,
+            ],
+        ];
+
+        $allProviders = array_merge($sameLocationProviders, $closeLocationProviders);
+
+        // Define varied schedules for each clustered provider
+        $scheduleVariations = [
+            // 0: James Clark - Mon/Wed/Fri mornings only
+            [
+                ['day' => 1, 'start' => '08:00', 'end' => '12:00'],
+                ['day' => 3, 'start' => '08:00', 'end' => '12:00'],
+                ['day' => 5, 'start' => '08:00', 'end' => '12:00'],
+            ],
+            // 1: Olivia Patel - Mon-Thu split
+            [
+                ['day' => 1, 'start' => '09:00', 'end' => '13:00'],
+                ['day' => 1, 'start' => '15:00', 'end' => '19:00'],
+                ['day' => 2, 'start' => '09:00', 'end' => '13:00'],
+                ['day' => 2, 'start' => '15:00', 'end' => '19:00'],
+                ['day' => 3, 'start' => '09:00', 'end' => '13:00'],
+                ['day' => 3, 'start' => '15:00', 'end' => '19:00'],
+                ['day' => 4, 'start' => '09:00', 'end' => '13:00'],
+                ['day' => 4, 'start' => '15:00', 'end' => '19:00'],
+            ],
+            // 2: David Wilson - Wed-Fri short
+            [
+                ['day' => 3, 'start' => '10:00', 'end' => '14:00'],
+                ['day' => 4, 'start' => '10:00', 'end' => '14:00'],
+                ['day' => 5, 'start' => '10:00', 'end' => '14:00'],
+            ],
+            // 3: Lisa Thompson - Mon-Fri split
+            [
+                ['day' => 1, 'start' => '07:00', 'end' => '11:00'],
+                ['day' => 1, 'start' => '14:00', 'end' => '18:00'],
+                ['day' => 2, 'start' => '07:00', 'end' => '11:00'],
+                ['day' => 2, 'start' => '14:00', 'end' => '18:00'],
+                ['day' => 3, 'start' => '07:00', 'end' => '11:00'],
+                ['day' => 3, 'start' => '14:00', 'end' => '18:00'],
+                ['day' => 4, 'start' => '07:00', 'end' => '11:00'],
+                ['day' => 4, 'start' => '14:00', 'end' => '18:00'],
+                ['day' => 5, 'start' => '07:00', 'end' => '11:00'],
+                ['day' => 5, 'start' => '14:00', 'end' => '18:00'],
+            ],
+            // 4: Robert Garcia - Tue-Thu continuous
+            [
+                ['day' => 2, 'start' => '09:00', 'end' => '17:00'],
+                ['day' => 3, 'start' => '09:00', 'end' => '17:00'],
+                ['day' => 4, 'start' => '09:00', 'end' => '17:00'],
+            ],
+            // 5: Sophie Lee - Mon-Sat fragmented
+            [
+                ['day' => 1, 'start' => '08:00', 'end' => '10:00'],
+                ['day' => 1, 'start' => '12:00', 'end' => '14:00'],
+                ['day' => 1, 'start' => '16:00', 'end' => '18:00'],
+                ['day' => 2, 'start' => '08:00', 'end' => '10:00'],
+                ['day' => 2, 'start' => '12:00', 'end' => '14:00'],
+                ['day' => 2, 'start' => '16:00', 'end' => '18:00'],
+                ['day' => 3, 'start' => '08:00', 'end' => '10:00'],
+                ['day' => 3, 'start' => '12:00', 'end' => '14:00'],
+                ['day' => 3, 'start' => '16:00', 'end' => '18:00'],
+                ['day' => 4, 'start' => '08:00', 'end' => '10:00'],
+                ['day' => 4, 'start' => '12:00', 'end' => '14:00'],
+                ['day' => 4, 'start' => '16:00', 'end' => '18:00'],
+                ['day' => 5, 'start' => '08:00', 'end' => '10:00'],
+                ['day' => 5, 'start' => '12:00', 'end' => '14:00'],
+                ['day' => 5, 'start' => '16:00', 'end' => '18:00'],
+                ['day' => 6, 'start' => '08:00', 'end' => '10:00'],
+                ['day' => 6, 'start' => '12:00', 'end' => '14:00'],
+                ['day' => 6, 'start' => '16:00', 'end' => '18:00'],
+            ],
+            // 6: Mark Taylor - Mon-Fri afternoons only
+            [
+                ['day' => 1, 'start' => '13:00', 'end' => '17:00'],
+                ['day' => 2, 'start' => '13:00', 'end' => '17:00'],
+                ['day' => 3, 'start' => '13:00', 'end' => '17:00'],
+                ['day' => 4, 'start' => '13:00', 'end' => '17:00'],
+                ['day' => 5, 'start' => '13:00', 'end' => '17:00'],
+            ],
+        ];
+
+        foreach ($allProviders as $index => $data) {
+            $user = User::firstOrCreate(
+                ['email' => $data['email']],
+                [
+                    'first_name' => $data['first_name'],
+                    'last_name' => $data['last_name'],
+                    'date_of_birth' => fake()->dateTimeBetween('-50 years', '-25 years')->format('Y-m-d'),
+                    'password' => Hash::make('password'),
+                    'email_verified_at' => now(),
+                ]
+            );
+            if (! $user->hasRole('provider')) {
+                $user->assignRole('provider');
+            }
+
+            $provider = Provider::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'type_id' => $individualType->id,
+                    'status_id' => $activeStatus->id,
+                    'provider_name' => $data['provider_name'],
+                    'address_line1' => '123 Test Street',
+                    'town_city' => 'London',
+                    'postcode' => 'W1D 3QE',
+                    'latitude' => $data['latitude'],
+                    'longitude' => $data['longitude'],
+                    'bio' => 'Professional phlebotomist providing quality blood collection services.',
+                    'experience_years' => $data['experience'],
+                    'average_rating' => $data['rating'],
+                    'total_reviews' => $data['reviews'],
+                    'show_image_in_search' => true,
+                    'approved_at' => now(),
+                    'approved_by' => $admin->id,
+                ]
+            );
+
+            // Add some services with varying prices
+            $this->createProviderServices($provider, [
+                ['code' => 'BT_FBC', 'price' => rand(30, 40) + 0.00],
+                ['code' => 'BT_LFT', 'price' => rand(40, 50) + 0.00],
+                ['code' => 'BT_VITD', 'price' => rand(30, 40) + 0.00],
+            ]);
+
+            // Assign different schedule to each provider based on index
+            $this->createProviderAvailability($provider, $scheduleVariations[$index]);
+
+            $this->createProviderServiceAreas($provider, ['W1', 'WC1', 'WC2', 'SW1']);
+        }
+
+        $this->command->info('Created clustered providers for map testing');
     }
 
     private function createProvider1(User $admin): void
@@ -178,6 +415,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Sarah',
                 'last_name' => 'Johnson',
+                'date_of_birth' => '1990-04-10',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -217,12 +455,18 @@ class TestUsersSeeder extends Seeder
             ['code' => 'BT_VITB12', 'price' => 35.00],
         ]);
 
+        // Mon-Fri split schedule with lunch break: 08:00-12:00, 14:00-18:00
         $this->createProviderAvailability($provider, [
-            ['day' => 1, 'start' => '08:00', 'end' => '18:00'],
-            ['day' => 2, 'start' => '08:00', 'end' => '18:00'],
-            ['day' => 3, 'start' => '08:00', 'end' => '18:00'],
-            ['day' => 4, 'start' => '08:00', 'end' => '18:00'],
-            ['day' => 5, 'start' => '08:00', 'end' => '18:00'],
+            ['day' => 1, 'start' => '08:00', 'end' => '12:00'],
+            ['day' => 1, 'start' => '14:00', 'end' => '18:00'],
+            ['day' => 2, 'start' => '08:00', 'end' => '12:00'],
+            ['day' => 2, 'start' => '14:00', 'end' => '18:00'],
+            ['day' => 3, 'start' => '08:00', 'end' => '12:00'],
+            ['day' => 3, 'start' => '14:00', 'end' => '18:00'],
+            ['day' => 4, 'start' => '08:00', 'end' => '12:00'],
+            ['day' => 4, 'start' => '14:00', 'end' => '18:00'],
+            ['day' => 5, 'start' => '08:00', 'end' => '12:00'],
+            ['day' => 5, 'start' => '14:00', 'end' => '18:00'],
         ]);
 
         $this->createProviderServiceAreas($provider, ['SW1', 'SW3', 'SW7', 'W1', 'WC1', 'WC2']);
@@ -235,6 +479,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Michael',
                 'last_name' => 'Chen',
+                'date_of_birth' => '1982-11-25',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -278,13 +523,27 @@ class TestUsersSeeder extends Seeder
             ['code' => 'BT_FULL', 'price' => 85.00],
         ]);
 
+        // Mon-Sat, three blocks per day
+        // Mon-Fri: 07:00-11:00, 13:00-17:00, 18:00-20:00
+        // Sat: 07:00-11:00, 13:00-17:00
         $this->createProviderAvailability($provider, [
-            ['day' => 1, 'start' => '07:00', 'end' => '20:00'],
-            ['day' => 2, 'start' => '07:00', 'end' => '20:00'],
-            ['day' => 3, 'start' => '07:00', 'end' => '20:00'],
-            ['day' => 4, 'start' => '07:00', 'end' => '20:00'],
-            ['day' => 5, 'start' => '07:00', 'end' => '20:00'],
-            ['day' => 6, 'start' => '07:00', 'end' => '20:00'],
+            ['day' => 1, 'start' => '07:00', 'end' => '11:00'],
+            ['day' => 1, 'start' => '13:00', 'end' => '17:00'],
+            ['day' => 1, 'start' => '18:00', 'end' => '20:00'],
+            ['day' => 2, 'start' => '07:00', 'end' => '11:00'],
+            ['day' => 2, 'start' => '13:00', 'end' => '17:00'],
+            ['day' => 2, 'start' => '18:00', 'end' => '20:00'],
+            ['day' => 3, 'start' => '07:00', 'end' => '11:00'],
+            ['day' => 3, 'start' => '13:00', 'end' => '17:00'],
+            ['day' => 3, 'start' => '18:00', 'end' => '20:00'],
+            ['day' => 4, 'start' => '07:00', 'end' => '11:00'],
+            ['day' => 4, 'start' => '13:00', 'end' => '17:00'],
+            ['day' => 4, 'start' => '18:00', 'end' => '20:00'],
+            ['day' => 5, 'start' => '07:00', 'end' => '11:00'],
+            ['day' => 5, 'start' => '13:00', 'end' => '17:00'],
+            ['day' => 5, 'start' => '18:00', 'end' => '20:00'],
+            ['day' => 6, 'start' => '07:00', 'end' => '11:00'],
+            ['day' => 6, 'start' => '13:00', 'end' => '17:00'],
         ]);
 
         $this->createProviderServiceAreas($provider, ['SW1', 'W1', 'W2', 'WC1', 'WC2', 'EC1']);
@@ -297,6 +556,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'North London',
                 'last_name' => 'Clinic',
+                'date_of_birth' => '1975-01-01',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -362,6 +622,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Emma',
                 'last_name' => 'Williams',
+                'date_of_birth' => '1993-07-18',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -402,12 +663,13 @@ class TestUsersSeeder extends Seeder
             ['code' => 'BT_IRON', 'price' => 42.00],
         ]);
 
+        // Short day, Tue-Sat, no split: 10:00-15:00
         $this->createProviderAvailability($provider, [
-            ['day' => 2, 'start' => '09:00', 'end' => '17:00'],
-            ['day' => 3, 'start' => '09:00', 'end' => '17:00'],
-            ['day' => 4, 'start' => '09:00', 'end' => '17:00'],
-            ['day' => 5, 'start' => '09:00', 'end' => '17:00'],
-            ['day' => 6, 'start' => '09:00', 'end' => '17:00'],
+            ['day' => 2, 'start' => '10:00', 'end' => '15:00'],
+            ['day' => 3, 'start' => '10:00', 'end' => '15:00'],
+            ['day' => 4, 'start' => '10:00', 'end' => '15:00'],
+            ['day' => 5, 'start' => '10:00', 'end' => '15:00'],
+            ['day' => 6, 'start' => '10:00', 'end' => '15:00'],
         ]);
 
         $this->createProviderServiceAreas($provider, ['W8', 'W11', 'SW5', 'SW7']);
@@ -420,6 +682,7 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'City',
                 'last_name' => 'Diagnostics',
+                'date_of_birth' => '1978-03-15',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -467,13 +730,21 @@ class TestUsersSeeder extends Seeder
             ['code' => 'BT_STI', 'price' => 75.00],
         ]);
 
+        // Mon-Fri split with gap, shorter Saturday
+        // Mon-Fri: 06:00-10:00, 12:00-16:00
+        // Sat: 08:00-12:00
         $this->createProviderAvailability($provider, [
-            ['day' => 1, 'start' => '06:00', 'end' => '20:00'],
-            ['day' => 2, 'start' => '06:00', 'end' => '20:00'],
-            ['day' => 3, 'start' => '06:00', 'end' => '20:00'],
-            ['day' => 4, 'start' => '06:00', 'end' => '20:00'],
-            ['day' => 5, 'start' => '06:00', 'end' => '20:00'],
-            ['day' => 6, 'start' => '08:00', 'end' => '16:00'],
+            ['day' => 1, 'start' => '06:00', 'end' => '10:00'],
+            ['day' => 1, 'start' => '12:00', 'end' => '16:00'],
+            ['day' => 2, 'start' => '06:00', 'end' => '10:00'],
+            ['day' => 2, 'start' => '12:00', 'end' => '16:00'],
+            ['day' => 3, 'start' => '06:00', 'end' => '10:00'],
+            ['day' => 3, 'start' => '12:00', 'end' => '16:00'],
+            ['day' => 4, 'start' => '06:00', 'end' => '10:00'],
+            ['day' => 4, 'start' => '12:00', 'end' => '16:00'],
+            ['day' => 5, 'start' => '06:00', 'end' => '10:00'],
+            ['day' => 5, 'start' => '12:00', 'end' => '16:00'],
+            ['day' => 6, 'start' => '08:00', 'end' => '12:00'],
         ]);
 
         $this->createProviderServiceAreas($provider, ['EC1', 'EC2', 'EC3', 'EC4', 'E1', 'E2']);

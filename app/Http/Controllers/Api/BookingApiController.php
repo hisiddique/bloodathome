@@ -10,10 +10,10 @@ use App\Http\Requests\Api\SearchProvidersRequest;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\BookingStatus;
+use App\Models\CollectionType;
 use App\Models\Provider;
 use App\Models\ProviderService;
 use App\Models\Service;
-use App\Models\ServiceCategory;
 use App\Services\ProviderSearchService;
 use App\Services\StripeService;
 use Carbon\Carbon;
@@ -44,7 +44,7 @@ class BookingApiController extends Controller
 
         $query = Service::query()
             ->where('is_active', true)
-            ->with(['category']);
+            ->with(['category', 'serviceCollectionMappings.collectionType']);
 
         if ($collectionType) {
             $query->whereHas('serviceCollectionMappings', function ($q) use ($collectionType) {
@@ -54,51 +54,45 @@ class BookingApiController extends Controller
             });
         }
 
-        $services = $query->get();
-
-        $categories = ServiceCategory::query()
-            ->whereHas('services', function ($q) use ($services) {
-                $q->whereIn('id', $services->pluck('id'));
-            })
-            ->get()
-            ->map(function ($category) use ($services) {
-                $categoryServices = $services->where('service_category_id', $category->id);
-
-                return [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                    'description' => $category->description,
-                    'services' => $categoryServices->map(function ($service) {
-                        $collectionTypes = $service->serviceCollectionMappings()
-                            ->with('collectionType')
-                            ->get()
-                            ->map(function ($mapping) {
-                                return [
-                                    'type' => $mapping->collectionType->name,
-                                    'additional_cost' => (float) $mapping->additional_cost,
-                                ];
-                            });
-
-                        return [
-                            'id' => $service->id,
-                            'name' => $service->service_name,
-                            'code' => $service->service_code,
-                            'description' => $service->service_description,
-                            'collection_types' => $collectionTypes,
-                        ];
-                    })->values(),
-                ];
-            })
-            ->filter(function ($category) {
-                return $category['services']->isNotEmpty();
-            })
-            ->values();
+        $services = $query->get()->map(function ($service) {
+            return [
+                'id' => $service->id,
+                'service_name' => $service->service_name,
+                'service_code' => $service->service_code,
+                'service_description' => $service->service_description,
+                'category' => [
+                    'id' => $service->category->id ?? null,
+                    'name' => $service->category->name ?? null,
+                ],
+                'is_active' => $service->is_active,
+            ];
+        });
 
         return response()->json([
-            'success' => true,
-            'data' => [
-                'categories' => $categories,
-            ],
+            'services' => $services,
+        ]);
+    }
+
+    /**
+     * Get all collection types.
+     */
+    public function getCollectionTypes(): JsonResponse
+    {
+        $collectionTypes = CollectionType::query()
+            ->orderBy('display_order')
+            ->get()
+            ->map(function ($type) {
+                return [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'icon_class' => $type->icon_class,
+                    'description' => $type->description,
+                    'display_order' => $type->display_order,
+                ];
+            });
+
+        return response()->json([
+            'collectionTypes' => $collectionTypes,
         ]);
     }
 
@@ -113,8 +107,16 @@ class BookingApiController extends Controller
         $longitude = $validated['longitude'];
         $radiusKm = $validated['radius_km'] ?? null;
 
+        $serviceIds = $validated['service_ids'] ?? (isset($validated['service_id']) ? [$validated['service_id']] : null);
+
+        // Filter out any stale/non-existent service IDs
+        if ($serviceIds && count($serviceIds) > 0) {
+            $validServiceIds = Service::whereIn('id', $serviceIds)->pluck('id')->toArray();
+            $serviceIds = $validServiceIds ?: null;
+        }
+
         $filters = [];
-        if (isset($validated['service_id'])) {
+        if (isset($validated['service_id']) && ! isset($validated['service_ids'])) {
             $filters['service_id'] = $validated['service_id'];
         }
         if (isset($validated['collection_type'])) {
@@ -128,11 +130,24 @@ class BookingApiController extends Controller
             $filters
         );
 
-        $providerData = $providers->map(function ($provider) {
-            return [
+        // Pre-fetch service names to avoid N+1 queries
+        $serviceNames = [];
+        if ($serviceIds && count($serviceIds) > 0) {
+            $serviceNames = Service::whereIn('id', $serviceIds)
+                ->pluck('service_name', 'id')
+                ->toArray();
+        }
+
+        $providerData = $providers->map(function ($provider) use ($serviceIds, $serviceNames) {
+            $baseData = [
                 'id' => $provider->id,
                 'name' => $provider->provider_name,
-                'type' => $provider->type->name ?? null,
+                'type' => [
+                    'id' => $provider->type->id ?? null,
+                    'name' => $provider->type->name ?? null,
+                ],
+                'latitude' => (float) $provider->latitude,
+                'longitude' => (float) $provider->longitude,
                 'distance_km' => $provider->distance_km,
                 'average_rating' => (float) $provider->average_rating,
                 'total_reviews' => $provider->total_reviews,
@@ -140,6 +155,11 @@ class BookingApiController extends Controller
                 'bio' => $provider->bio,
                 'profile_image_url' => $provider->profile_image_url,
                 'profile_thumbnail_url' => $provider->profile_thumbnail_url,
+                'show_image_in_search' => $provider->show_image_in_search,
+                'user' => [
+                    'full_name' => $provider->user->full_name ?? $provider->provider_name,
+                    'profile_image' => $provider->user->profile_image ?? null,
+                ],
                 'address' => [
                     'line1' => $provider->address_line1,
                     'line2' => $provider->address_line2,
@@ -147,6 +167,19 @@ class BookingApiController extends Controller
                     'postcode' => $provider->postcode,
                 ],
             ];
+
+            if ($serviceIds && count($serviceIds) > 0) {
+                $matchInfo = $this->providerSearchService->matchServicesForProvider($provider, $serviceIds, $serviceNames);
+                $baseData = array_merge($baseData, [
+                    'services_matched' => $matchInfo['services_matched'],
+                    'services_total' => $matchInfo['services_total'],
+                    'matched_services' => $matchInfo['matched'],
+                    'unmatched_services' => $matchInfo['unmatched'],
+                    'total_price' => $matchInfo['total_price'],
+                ]);
+            }
+
+            return $baseData;
         });
 
         return response()->json([
@@ -196,6 +229,20 @@ class BookingApiController extends Controller
         try {
             DB::beginTransaction();
 
+            // Determine if this is a guest booking
+            $isGuest = ! auth()->check();
+            $userId = $isGuest ? null : auth()->id();
+
+            // For guest bookings, require guest details
+            if ($isGuest) {
+                if (empty($validated['guest_email']) || empty($validated['guest_name']) || empty($validated['guest_phone'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Guest name, email, and phone are required.',
+                    ], 422);
+                }
+            }
+
             $provider = Provider::findOrFail($validated['provider_id']);
 
             $providerServices = ProviderService::query()
@@ -220,8 +267,8 @@ class BookingApiController extends Controller
                 throw new \RuntimeException('Pending booking status not found.');
             }
 
-            $booking = Booking::create([
-                'user_id' => auth()->id(),
+            $bookingData = [
+                'user_id' => $userId,
                 'provider_id' => $provider->id,
                 'status_id' => $pendingStatus->id,
                 'collection_type_id' => $validated['collection_type_id'],
@@ -237,7 +284,17 @@ class BookingApiController extends Controller
                 'patient_notes' => $validated['patient_notes'] ?? null,
                 'draft_token' => Str::uuid()->toString(),
                 'draft_expires_at' => now()->addMinutes(30),
-            ]);
+                'is_guest_booking' => $isGuest,
+            ];
+
+            // Add guest-specific fields if guest booking
+            if ($isGuest) {
+                $bookingData['guest_email'] = $validated['guest_email'];
+                $bookingData['guest_name'] = $validated['guest_name'];
+                $bookingData['guest_phone'] = $validated['guest_phone'];
+            }
+
+            $booking = Booking::create($bookingData);
 
             foreach ($providerServices as $providerService) {
                 BookingItem::create([
@@ -253,7 +310,9 @@ class BookingApiController extends Controller
 
             Log::info('Booking draft created', [
                 'booking_id' => $booking->id,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
+                'is_guest' => $isGuest,
+                'guest_email' => $isGuest ? $validated['guest_email'] : null,
                 'provider_id' => $provider->id,
                 'total_cost' => $totalCost,
             ]);
@@ -273,11 +332,125 @@ class BookingApiController extends Controller
             Log::error('Failed to create booking draft', [
                 'error' => $e->getMessage(),
                 'user_id' => auth()->id(),
+                'is_guest' => ! auth()->check(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create booking draft. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing booking draft.
+     */
+    public function updateDraft(Booking $booking, CreateBookingDraftRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        try {
+            if ($booking->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update this booking.',
+                ], 403);
+            }
+
+            $pendingStatus = BookingStatus::pending();
+            if (! $pendingStatus || $booking->status_id !== $pendingStatus->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only pending bookings can be updated.',
+                ], 422);
+            }
+
+            if ($booking->draft_expires_at && $booking->draft_expires_at->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This booking draft has expired. Please create a new booking.',
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            $provider = Provider::findOrFail($validated['provider_id']);
+
+            $providerServices = ProviderService::query()
+                ->where('provider_id', $provider->id)
+                ->whereIn('service_id', $validated['service_items'])
+                ->active()
+                ->current()
+                ->with('service')
+                ->get();
+
+            if ($providerServices->count() !== count($validated['service_items'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some selected services are not available from this provider.',
+                ], 422);
+            }
+
+            $totalCost = $providerServices->sum('base_cost');
+
+            $booking->update([
+                'provider_id' => $provider->id,
+                'collection_type_id' => $validated['collection_type_id'],
+                'nhs_number' => $validated['nhs_number'] ?? null,
+                'scheduled_date' => $validated['scheduled_date'],
+                'time_slot' => $validated['time_slot'],
+                'service_address_line1' => $validated['service_address_line1'] ?? null,
+                'service_address_line2' => $validated['service_address_line2'] ?? null,
+                'service_town_city' => $validated['service_town_city'] ?? null,
+                'service_postcode' => $validated['service_postcode'] ?? null,
+                'grand_total_cost' => $totalCost,
+                'visit_instructions' => $validated['visit_instructions'] ?? null,
+                'patient_notes' => $validated['patient_notes'] ?? null,
+                'draft_expires_at' => now()->addMinutes(30),
+            ]);
+
+            BookingItem::where('booking_id', $booking->id)->delete();
+
+            foreach ($providerServices as $providerService) {
+                BookingItem::create([
+                    'booking_id' => $booking->id,
+                    'catalog_id' => $providerService->id,
+                    'item_cost' => $providerService->base_cost,
+                    'agreed_comm_percent' => $providerService->agreed_commission_percent,
+                    'created_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            Log::info('Booking draft updated', [
+                'booking_id' => $booking->id,
+                'user_id' => auth()->id(),
+                'provider_id' => $provider->id,
+                'total_cost' => $totalCost,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'booking_id' => $booking->id,
+                    'draft_token' => $booking->draft_token,
+                    'expires_at' => $booking->draft_expires_at->toISOString(),
+                    'total_cost' => (float) $booking->grand_total_cost,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to update booking draft', [
+                'error' => $e->getMessage(),
+                'booking_id' => $booking->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update booking draft. Please try again.',
             ], 500);
         }
     }
@@ -290,10 +463,17 @@ class BookingApiController extends Controller
         $validated = $request->validated();
 
         try {
-            $booking = Booking::where('id', $validated['booking_id'])
-                ->where('draft_token', $validated['draft_token'])
-                ->where('user_id', auth()->id())
-                ->firstOrFail();
+            $query = Booking::where('id', $validated['booking_id']);
+
+            // For authenticated users, verify ownership
+            // For guests, verify it's a guest booking (user_id is null)
+            if (auth()->check()) {
+                $query->where('user_id', auth()->id());
+            } else {
+                $query->whereNull('user_id')->where('is_guest_booking', true);
+            }
+
+            $booking = $query->firstOrFail();
 
             if ($booking->draft_expires_at && $booking->draft_expires_at->isPast()) {
                 return response()->json([
@@ -312,13 +492,20 @@ class BookingApiController extends Controller
 
             $amountInPence = (int) ($booking->grand_total_cost * 100);
 
+            $metadata = [
+                'booking_id' => $booking->id,
+            ];
+
+            if (auth()->check()) {
+                $metadata['user_id'] = auth()->id();
+            } else {
+                $metadata['guest_email'] = $booking->guest_email;
+            }
+
             $paymentIntent = $this->stripeService->createPaymentIntent(
                 $amountInPence,
                 'gbp',
-                [
-                    'booking_id' => $booking->id,
-                    'user_id' => auth()->id(),
-                ]
+                $metadata
             );
 
             $booking->update([
@@ -353,6 +540,17 @@ class BookingApiController extends Controller
     }
 
     /**
+     * Apply a promo code to a booking.
+     */
+    public function applyPromoCode(Request $request, Booking $booking): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Promo codes are not yet available.',
+        ], 422);
+    }
+
+    /**
      * Confirm a booking after successful payment.
      */
     public function confirmBooking(ConfirmBookingRequest $request): JsonResponse
@@ -362,10 +560,18 @@ class BookingApiController extends Controller
         try {
             DB::beginTransaction();
 
-            $booking = Booking::where('id', $validated['booking_id'])
-                ->where('user_id', auth()->id())
-                ->with(['provider', 'items.providerService.service', 'collectionType'])
-                ->firstOrFail();
+            $query = Booking::where('id', $validated['booking_id'])
+                ->with(['provider', 'items.providerService.service', 'collectionType']);
+
+            // For authenticated users, verify ownership
+            // For guests, verify it's a guest booking (user_id is null)
+            if (auth()->check()) {
+                $query->where('user_id', auth()->id());
+            } else {
+                $query->whereNull('user_id')->where('is_guest_booking', true);
+            }
+
+            $booking = $query->firstOrFail();
 
             if ($booking->stripe_payment_intent_id !== $validated['payment_intent_id']) {
                 return response()->json([
@@ -443,5 +649,29 @@ class BookingApiController extends Controller
                 'message' => 'Failed to confirm booking. Please contact support.',
             ], 500);
         }
+    }
+
+    /**
+     * Save an address for the authenticated user.
+     */
+    public function saveAddress(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'label' => ['required', 'string', 'max:100'],
+            'address_line1' => ['required', 'string', 'max:255'],
+            'address_line2' => ['nullable', 'string', 'max:255'],
+            'town_city' => ['required', 'string', 'max:255'],
+            'postcode' => ['required', 'string', 'max:10'],
+        ]);
+
+        $address = $request->user()->addresses()->create($validated);
+
+        Log::info('Address saved during booking', [
+            'user_id' => $request->user()->id,
+            'address_id' => $address->id,
+            'label' => $validated['label'],
+        ]);
+
+        return response()->json($address, 201);
     }
 }

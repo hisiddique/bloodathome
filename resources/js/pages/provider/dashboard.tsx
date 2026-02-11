@@ -14,7 +14,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Calendar, Clock, DollarSign, Star, TrendingUp } from 'lucide-react';
@@ -47,7 +47,7 @@ interface ProviderDashboardProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
 ];
 
@@ -56,7 +56,7 @@ export default function ProviderDashboard({
     upcoming_bookings = [],
 }: ProviderDashboardProps) {
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Provider Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -208,7 +208,7 @@ export default function ProviderDashboard({
                                                 </div>
                                             </div>
                                             <Link
-                                                href={`/provider/bookings/${booking.id}`}
+                                                href={`/bookings/${booking.id}`}
                                                 className="text-sm font-medium text-primary hover:underline"
                                             >
                                                 View Details
@@ -229,7 +229,7 @@ export default function ProviderDashboard({
                         </CardHeader>
                         <CardContent className="grid gap-4">
                             <Link
-                                href="/provider/availability"
+                                href="/availability"
                                 className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
                             >
                                 <Clock className="h-8 w-8 text-primary" />
@@ -244,7 +244,7 @@ export default function ProviderDashboard({
                             </Link>
 
                             <Link
-                                href="/provider/services"
+                                href="/services"
                                 className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
                             >
                                 <TrendingUp className="h-8 w-8 text-primary" />
@@ -259,7 +259,7 @@ export default function ProviderDashboard({
                             </Link>
 
                             <Link
-                                href="/provider/service-areas"
+                                href="/service-areas"
                                 className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
                             >
                                 <Calendar className="h-8 w-8 text-primary" />
@@ -276,6 +276,6 @@ export default function ProviderDashboard({
                     </Card>
                 </div>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

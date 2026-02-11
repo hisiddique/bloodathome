@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageThread, MessageInput, type Message } from '@/components/chat';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -38,11 +38,11 @@ export default function ChatShow({ conversation, messages = [] }: ChatShowProps)
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Messages',
-            href: '/patient/chat',
+            href: '/chat',
         },
         {
             title: conversation.phlebotomist_name,
-            href: `/patient/chat/${conversation.id}`,
+            href: `/chat/${conversation.id}`,
         },
     ];
 
@@ -69,10 +69,10 @@ export default function ChatShow({ conversation, messages = [] }: ChatShowProps)
     }));
 
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Chat with ${conversation.phlebotomist_name}`} />
 
-            <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-4xl flex-col p-6">
+            <div className="flex h-[calc(100vh-8rem)] flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <Card className="mb-4">
                     <CardHeader className="pb-3">
                         <div className="flex items-center gap-3">
@@ -111,10 +111,10 @@ export default function ChatShow({ conversation, messages = [] }: ChatShowProps)
                         className="flex-1"
                     />
                     <MessageInput
-                        action={`/patient/chat/${conversation.id}/messages`}
+                        action={`/chat/${conversation.id}/messages`}
                     />
                 </Card>
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

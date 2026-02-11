@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Edit, Plus, Trash2 } from 'lucide-react';
@@ -39,11 +39,11 @@ interface ProviderServicesIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Services',
-        href: '/provider/services',
+        href: '/services',
     },
 ];
 
@@ -83,14 +83,14 @@ export default function ProviderServicesIndex({
         e.preventDefault();
 
         if (editingService) {
-            put(`/provider/services/${editingService.id}`, {
+            put(`/services/${editingService.id}`, {
                 onSuccess: () => {
                     setIsDialogOpen(false);
                     reset();
                 },
             });
         } else {
-            post('/provider/services', {
+            post('/services', {
                 onSuccess: () => {
                     setIsDialogOpen(false);
                     reset();
@@ -101,12 +101,12 @@ export default function ProviderServicesIndex({
 
     const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to delete this service?')) {
-            router.delete(`/provider/services/${id}`);
+            router.delete(`/services/${id}`);
         }
     };
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Services" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="flex items-center justify-between">
@@ -311,6 +311,6 @@ export default function ProviderServicesIndex({
                     </DialogContent>
                 </Dialog>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

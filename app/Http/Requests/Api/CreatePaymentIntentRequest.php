@@ -20,13 +20,26 @@ class CreatePaymentIntentRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Handle both draftId (frontend) and booking_id (internal)
+        if ($this->has('draftId') && ! $this->has('booking_id')) {
+            $this->merge([
+                'booking_id' => $this->input('draftId'),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
         return [
             'booking_id' => ['required', 'string', 'exists:bookings,id'],
-            'draft_token' => ['required', 'string', 'size:36'],
+            'draftId' => ['nullable', 'string'],
         ];
     }
 
@@ -38,8 +51,6 @@ class CreatePaymentIntentRequest extends FormRequest
         return [
             'booking_id.required' => 'Booking ID is required.',
             'booking_id.exists' => 'Booking not found.',
-            'draft_token.required' => 'Draft token is required.',
-            'draft_token.size' => 'Invalid draft token format.',
         ];
     }
 }

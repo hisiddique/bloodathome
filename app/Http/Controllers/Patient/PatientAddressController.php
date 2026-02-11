@@ -30,6 +30,30 @@ class PatientAddressController extends Controller
     }
 
     /**
+     * Show the form for creating a new address.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('patient/addresses/create');
+    }
+
+    /**
+     * Show the form for editing the specified address.
+     */
+    public function edit(UserAddress $address): Response
+    {
+        $user = request()->user();
+
+        if ($address->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to address.');
+        }
+
+        return Inertia::render('patient/addresses/edit', [
+            'address' => $address,
+        ]);
+    }
+
+    /**
      * Store a newly created address.
      */
     public function store(PatientAddressRequest $request): RedirectResponse
@@ -43,7 +67,7 @@ class PatientAddressController extends Controller
 
         $user->addresses()->create($validated);
 
-        return back()->with('success', 'Address added successfully.');
+        return redirect()->route('patient.addresses.index')->with('success', 'Address added successfully.');
     }
 
     /**
@@ -65,7 +89,7 @@ class PatientAddressController extends Controller
 
         $address->update($validated);
 
-        return back()->with('success', 'Address updated successfully.');
+        return redirect()->route('patient.addresses.index')->with('success', 'Address updated successfully.');
     }
 
     /**

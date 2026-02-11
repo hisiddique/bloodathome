@@ -1,30 +1,56 @@
-import { useState, useEffect } from 'react';
-import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
+import { useState, useEffect, useRef } from 'react';
+import { loadStripe, type Stripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Cache Stripe instance at module level to avoid re-creating on every mount
+let stripePromiseCache: Promise<Stripe | null> | null = null;
+let cachedKey = '';
+
+function getStripePromise(publicKey: string): Promise<Stripe | null> {
+    if (stripePromiseCache && cachedKey === publicKey) {
+        return stripePromiseCache;
+    }
+    cachedKey = publicKey;
+    stripePromiseCache = loadStripe(publicKey);
+    return stripePromiseCache;
+}
+
 interface StripePaymentFormProps {
     clientSecret: string;
     amount: number;
     stripePublicKey: string;
+    termsAccepted?: boolean;
     onPaymentSuccess: (paymentIntentId: string) => void;
     onPaymentError: (error: string) => void;
+    children?: React.ReactNode;
 }
 
 function PaymentForm({
     amount,
+    termsAccepted = true,
     onPaymentSuccess,
     onPaymentError,
+    children,
 }: {
     amount: number;
+    termsAccepted?: boolean;
     onPaymentSuccess: (paymentIntentId: string) => void;
     onPaymentError: (error: string) => void;
+    children?: React.ReactNode;
 }) {
     const stripe = useStripe();
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,19 +70,23 @@ function PaymentForm({
                 redirect: 'if_required',
             });
 
+            if (!mountedRef.current) return;
+
             if (error) {
                 onPaymentError(error.message || 'Payment failed');
                 toast.error(error.message || 'Payment failed');
             } else if (paymentIntent && paymentIntent.status === 'succeeded') {
                 onPaymentSuccess(paymentIntent.id);
-                toast.success('Payment successful');
             }
         } catch (err) {
+            if (!mountedRef.current) return;
             console.error('Payment error:', err);
             onPaymentError('An unexpected error occurred');
             toast.error('An unexpected error occurred');
         } finally {
-            setIsProcessing(false);
+            if (mountedRef.current) {
+                setIsProcessing(false);
+            }
         }
     };
 
@@ -64,9 +94,11 @@ function PaymentForm({
         <form onSubmit={handleSubmit} className="space-y-4">
             <PaymentElement />
 
+            {children}
+
             <Button
                 type="submit"
-                disabled={!stripe || isProcessing}
+                disabled={!stripe || isProcessing || !termsAccepted}
                 className="w-full py-6 text-base"
                 size="lg"
             >
@@ -91,16 +123,31 @@ export function StripePaymentForm({
     clientSecret,
     amount,
     stripePublicKey,
+    termsAccepted,
     onPaymentSuccess,
     onPaymentError,
+    children,
 }: StripePaymentFormProps) {
-    const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
+    const stripePromise = stripePublicKey ? getStripePromise(stripePublicKey) : null;
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
+    // Detect dark mode
     useEffect(() => {
-        if (stripePublicKey) {
-            setStripePromise(loadStripe(stripePublicKey));
-        }
-    }, [stripePublicKey]);
+        const checkDarkMode = () => {
+            setIsDarkMode(document.documentElement.classList.contains('dark'));
+        };
+
+        checkDarkMode();
+
+        // Watch for theme changes
+        const observer = new MutationObserver(checkDarkMode);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+
+        return () => observer.disconnect();
+    }, []);
 
     if (!stripePromise || !clientSecret) {
         return (
@@ -113,12 +160,12 @@ export function StripePaymentForm({
     const options: StripeElementsOptions = {
         clientSecret,
         appearance: {
-            theme: 'stripe',
+            theme: isDarkMode ? 'night' : 'stripe',
             variables: {
-                colorPrimary: 'hsl(var(--primary))',
-                colorBackground: 'hsl(var(--background))',
-                colorText: 'hsl(var(--foreground))',
-                colorDanger: 'hsl(var(--destructive))',
+                colorPrimary: isDarkMode ? '#3b82f6' : '#0570de',
+                colorBackground: isDarkMode ? '#1f2937' : '#ffffff',
+                colorText: isDarkMode ? '#f3f4f6' : '#1f2937',
+                colorDanger: isDarkMode ? '#ef4444' : '#df1b41',
                 fontFamily: 'system-ui, sans-serif',
                 borderRadius: '0.75rem',
             },
@@ -126,8 +173,15 @@ export function StripePaymentForm({
     };
 
     return (
-        <Elements stripe={stripePromise} options={options}>
-            <PaymentForm amount={amount} onPaymentSuccess={onPaymentSuccess} onPaymentError={onPaymentError} />
+        <Elements key={isDarkMode ? 'dark' : 'light'} stripe={stripePromise} options={options}>
+            <PaymentForm
+                amount={amount}
+                termsAccepted={termsAccepted}
+                onPaymentSuccess={onPaymentSuccess}
+                onPaymentError={onPaymentError}
+            >
+                {children}
+            </PaymentForm>
         </Elements>
     );
 }

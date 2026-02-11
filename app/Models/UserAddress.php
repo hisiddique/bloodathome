@@ -31,6 +31,8 @@ class UserAddress extends Model
         'address_line2',
         'town_city',
         'postcode',
+        'latitude',
+        'longitude',
         'is_default',
     ];
 

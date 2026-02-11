@@ -36,7 +36,7 @@ class ProviderSearchService
             // Add bounding box filter at database level
             ->whereBetween('latitude', [$lat - $latDelta, $lat + $latDelta])
             ->whereBetween('longitude', [$lng - $lngDelta, $lng + $lngDelta])
-            ->with(['user', 'type', 'status', 'providerServices.service', 'serviceAreas', 'clinicLocations'])
+            ->with(['user', 'type', 'status', 'providerServices.service', 'providerServices.status', 'serviceAreas', 'clinicLocations'])
             ->get()
             ->map(function ($provider) use ($lat, $lng) {
                 $distance = $this->calculateDistance(
@@ -122,30 +122,40 @@ class ProviderSearchService
             ->pluck('time_slot')
             ->toArray();
 
-        $slots = [];
+        // Build a set of available time strings from all availability windows
+        $availableTimeSet = [];
 
         foreach ($availability as $slot) {
             $startTime = Carbon::parse($slot->start_time);
             $endTime = Carbon::parse($slot->end_time);
 
             while ($startTime->lt($endTime)) {
-                $timeSlot = $startTime->format('H:i');
-                $isAvailable = ! in_array($timeSlot, $bookedSlots);
-
-                $slots[] = [
-                    'time' => $timeSlot,
-                    'available' => $isAvailable,
-                ];
-
+                $availableTimeSet[$startTime->format('H:i')] = true;
                 $startTime->addMinutes(30);
             }
         }
 
-        usort($slots, function ($a, $b) {
-            return strcmp($a['time'], $b['time']);
-        });
+        // Generate ALL slots from earliest start to latest end
+        $earliestStart = Carbon::parse($availability->min('start_time'));
+        $latestEnd = Carbon::parse($availability->max('end_time'));
 
-        return array_values(array_unique($slots, SORT_REGULAR));
+        $slots = [];
+        $current = $earliestStart->copy();
+
+        while ($current->lt($latestEnd)) {
+            $timeSlot = $current->format('H:i');
+            $isInWindow = isset($availableTimeSet[$timeSlot]);
+            $isBooked = in_array($timeSlot, $bookedSlots);
+
+            $slots[] = [
+                'time' => $timeSlot,
+                'available' => $isInWindow && ! $isBooked,
+            ];
+
+            $current->addMinutes(30);
+        }
+
+        return $slots;
     }
 
     /**
@@ -182,5 +192,62 @@ class ProviderSearchService
 
             return true;
         })->values();
+    }
+
+    /**
+     * Match services for a provider against requested services.
+     * Returns matched/unmatched service info and total price.
+     *
+     * @param  array<string>  $requestedServiceIds
+     * @param  array<string, string>|null  $serviceNames  Pre-fetched service names (id => name)
+     */
+    public function matchServicesForProvider(Provider $provider, array $requestedServiceIds, ?array $serviceNames = null): array
+    {
+        $matched = [];
+        $unmatched = [];
+        $totalPrice = 0;
+
+        // Filter provider services to only active and current ones
+        $activeProviderServices = $provider->providerServices->filter(function ($ps) {
+            // Check if status is "Active"
+            $isActive = $ps->status && $ps->status->name === 'Active';
+
+            // Check if current (within date range)
+            $startDate = $ps->start_date;
+            $endDate = $ps->end_date;
+            $now = now();
+
+            $isCurrent = $startDate <= $now && ($endDate === null || $endDate >= $now);
+
+            return $isActive && $isCurrent;
+        });
+
+        foreach ($requestedServiceIds as $serviceId) {
+            $providerService = $activeProviderServices
+                ->where('service_id', $serviceId)
+                ->first();
+
+            if ($providerService) {
+                $matched[] = [
+                    'id' => $serviceId,
+                    'name' => $providerService->service->service_name ?? 'Unknown',
+                    'price' => (float) $providerService->base_cost,
+                ];
+                $totalPrice += $providerService->base_cost;
+            } else {
+                $unmatched[] = [
+                    'id' => $serviceId,
+                    'name' => $serviceNames[$serviceId] ?? 'Unknown',
+                ];
+            }
+        }
+
+        return [
+            'matched' => $matched,
+            'unmatched' => $unmatched,
+            'services_matched' => count($matched),
+            'services_total' => count($requestedServiceIds),
+            'total_price' => $totalPrice,
+        ];
     }
 }

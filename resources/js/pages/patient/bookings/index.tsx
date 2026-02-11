@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -24,11 +24,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { Calendar, Clock, MapPin, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 interface Booking {
@@ -64,7 +64,7 @@ interface BookingsProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'My Bookings',
-        href: '/patient/bookings',
+        href: '/books',
     },
 ];
 
@@ -78,7 +78,7 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
 
     const handleFilter = () => {
         router.get(
-            '/patient/bookings',
+            '/books',
             {
                 status: statusFilter !== 'all' ? statusFilter : undefined,
                 date_from: dateFrom || undefined,
@@ -110,23 +110,15 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
     };
 
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="My Bookings" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">My Bookings</h1>
-                        <p className="text-muted-foreground">
-                            View and manage your appointments
-                        </p>
-                    </div>
-                    <Link href="/booking">
-                        <Button>
-                            <Plus className="mr-2 size-4" />
-                            New Booking
-                        </Button>
-                    </Link>
+                <div>
+                    <h1 className="text-2xl font-bold">My Bookings</h1>
+                    <p className="text-muted-foreground">
+                        View and manage your appointments
+                    </p>
                 </div>
 
                 <Card>
@@ -169,23 +161,21 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="date_from">From Date</Label>
-                                <Input
+                                <DatePicker
                                     id="date_from"
-                                    type="date"
                                     value={dateFrom}
-                                    onChange={(e) =>
-                                        setDateFrom(e.target.value)
-                                    }
+                                    onChange={setDateFrom}
+                                    placeholder="From date"
                                 />
                             </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="date_to">To Date</Label>
-                                <Input
+                                <DatePicker
                                     id="date_to"
-                                    type="date"
                                     value={dateTo}
-                                    onChange={(e) => setDateTo(e.target.value)}
+                                    onChange={setDateTo}
+                                    placeholder="To date"
                                 />
                             </div>
 
@@ -206,17 +196,11 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                             <CardTitle className="mb-2">
                                 No bookings found
                             </CardTitle>
-                            <CardDescription className="mb-4">
+                            <CardDescription>
                                 {statusFilter !== 'all' || dateFrom || dateTo
                                     ? 'Try adjusting your filters'
                                     : 'Book your first appointment to get started'}
                             </CardDescription>
-                            <Link href="/booking">
-                                <Button>
-                                    <Plus className="mr-2 size-4" />
-                                    Book Appointment
-                                </Button>
-                            </Link>
                         </CardContent>
                     </Card>
                 ) : (
@@ -285,7 +269,7 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Link
-                                                        href={`/patient/bookings/${booking.id}`}
+                                                        href={`/books/${booking.id}`}
                                                     >
                                                         <Button
                                                             variant="outline"
@@ -384,7 +368,7 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                                                     </span>
                                                 </div>
                                                 <Link
-                                                    href={`/patient/bookings/${booking.id}`}
+                                                    href={`/books/${booking.id}`}
                                                     className="mt-3 block"
                                                 >
                                                     <Button
@@ -432,6 +416,6 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                     </>
                 )}
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

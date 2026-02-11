@@ -46,6 +46,7 @@ class ManageSettings extends Page implements HasForms
             'service_fee_percentage' => SystemSetting::getValue('platform.service_fee_percentage', 5),
             'vat_percentage' => SystemSetting::getValue('platform.vat_percentage', 20),
             'provider_search_radius_km' => SystemSetting::getValue('platform.provider_search_radius_km', 10),
+            'date_format' => SystemSetting::getValue('platform.date_format', 'DD/MM/YYYY'),
             'admin_email' => SystemSetting::getValue('notifications.admin_email'),
         ]);
     }
@@ -151,6 +152,16 @@ class ManageSettings extends Page implements HasForms
                                     ->maxValue(100)
                                     ->default(10)
                                     ->helperText('Default search radius for finding nearby providers'),
+                                Forms\Components\Select::make('date_format')
+                                    ->label('Date Format')
+                                    ->options([
+                                        'DD/MM/YYYY' => 'DD/MM/YYYY (e.g., 31/12/2026)',
+                                        'MM/DD/YYYY' => 'MM/DD/YYYY (e.g., 12/31/2026)',
+                                        'YYYY-MM-DD' => 'YYYY-MM-DD (e.g., 2026-12-31)',
+                                    ])
+                                    ->default('DD/MM/YYYY')
+                                    ->required()
+                                    ->helperText('Default date format used throughout the application'),
                             ]),
                         Forms\Components\Tabs\Tab::make('Notifications')
                             ->icon('heroicon-o-bell')
@@ -185,6 +196,7 @@ class ManageSettings extends Page implements HasForms
             SystemSetting::setValue('platform.service_fee_percentage', $data['service_fee_percentage'], 'float', 'platform');
             SystemSetting::setValue('platform.vat_percentage', $data['vat_percentage'], 'float', 'platform');
             SystemSetting::setValue('platform.provider_search_radius_km', $data['provider_search_radius_km'], 'integer', 'platform');
+            SystemSetting::setValue('platform.date_format', $data['date_format'], 'string', 'platform');
             SystemSetting::setValue('notifications.admin_email', $data['admin_email'], 'string', 'notifications');
 
             Notification::make()

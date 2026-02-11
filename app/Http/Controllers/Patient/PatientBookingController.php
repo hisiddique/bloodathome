@@ -100,7 +100,7 @@ class PatientBookingController extends Controller
             'cancellation_reason' => $request->input('reason'),
         ]);
 
-        return to_route('patient.bookings.show', $booking)
+        return to_route('bookings.show', $booking)
             ->with('success', 'Booking cancelled successfully.');
     }
 }

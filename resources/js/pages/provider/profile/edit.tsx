@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Camera, Upload } from 'lucide-react';
@@ -35,11 +35,11 @@ interface ProviderProfileEditProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Profile',
-        href: '/provider/profile',
+        href: '/profile',
     },
 ];
 
@@ -75,13 +75,13 @@ export default function ProviderProfileEdit({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/provider/profile', {
+        post('/profile', {
             forceFormData: true,
         });
     };
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Profile" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div>
@@ -299,6 +299,6 @@ export default function ProviderProfileEdit({
                     </div>
                 </form>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

@@ -20,7 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
@@ -53,11 +53,11 @@ interface ProviderEarningsIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Earnings',
-        href: '/provider/earnings',
+        href: '/earnings',
     },
 ];
 
@@ -70,14 +70,14 @@ export default function ProviderEarningsIndex({
     const handlePeriodChange = (value: string) => {
         setPeriod(value);
         router.get(
-            '/provider/earnings',
+            '/earnings',
             { period: value === 'all' ? undefined : value },
             { preserveState: true },
         );
     };
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Earnings" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="flex items-center justify-between">
@@ -236,6 +236,6 @@ export default function ProviderEarningsIndex({
                     </CardContent>
                 </Card>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

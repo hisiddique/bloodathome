@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('address_line2', 255)->nullable();
             $table->string('town_city', 100);
             $table->string('postcode', 10);
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
             $table->boolean('is_default')->default(false);
             $table->timestamps();
 

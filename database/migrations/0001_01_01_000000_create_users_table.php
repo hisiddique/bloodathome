@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('first_name', 100);
             $table->string('middle_name', 100)->nullable();
             $table->string('last_name', 100);
+            $table->date('date_of_birth');
             $table->string('phone', 20)->nullable();
             $table->string('profile_image', 255)->nullable();
             $table->timestamp('email_verified_at')->nullable();

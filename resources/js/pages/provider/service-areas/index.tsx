@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import ProviderLayout from '@/layouts/provider-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { MapPin, Plus, Trash2 } from 'lucide-react';
@@ -37,11 +37,11 @@ interface ProviderServiceAreasIndexProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/provider/dashboard',
+        href: '/dashboard',
     },
     {
         title: 'Service Areas',
-        href: '/provider/service-areas',
+        href: '/service-areas',
     },
 ];
 
@@ -57,7 +57,7 @@ export default function ProviderServiceAreasIndex({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/provider/service-areas', {
+        post('/service-areas', {
             onSuccess: () => {
                 setIsDialogOpen(false);
                 reset();
@@ -67,12 +67,12 @@ export default function ProviderServiceAreasIndex({
 
     const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to remove this service area?')) {
-            router.delete(`/provider/service-areas/${id}`);
+            router.delete(`/service-areas/${id}`);
         }
     };
 
     return (
-        <ProviderLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Service Areas" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="flex items-center justify-between">
@@ -223,6 +223,6 @@ export default function ProviderServiceAreasIndex({
                     </DialogContent>
                 </Dialog>
             </div>
-        </ProviderLayout>
+        </AppLayout>
     );
 }

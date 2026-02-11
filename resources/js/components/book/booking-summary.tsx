@@ -1,8 +1,8 @@
-import { Calendar, MapPin, User, CreditCard } from 'lucide-react';
+import { Calendar, MapPin, User, Clock, Stethoscope, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBooking } from '@/contexts/booking-context';
 import { usePage } from '@inertiajs/react';
-import { type PageProps } from '@/types';
+import { type PageProps, type Service } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface BookingSummaryProps {
@@ -12,29 +12,49 @@ interface BookingSummaryProps {
 export function BookingSummary({ className }: BookingSummaryProps) {
     const {
         selectedServices,
+        bookedServices,
+        providerServicePrices,
         collectionType,
         location,
         selectedDate,
-        timeOfDay,
+        selectedSlot,
         selectedProvider,
-        totalAmount,
         discount,
+        setSelectedServices,
     } = useBooking();
 
     const { serviceFeePercentage, vatPercentage } = usePage<PageProps>().props;
 
-    const subtotal = selectedServices.reduce((sum, service) => {
-        const price = service.base_price || 0;
-        return sum + price;
-    }, 0);
+    // Use bookedServices if provider selected (may be subset), otherwise selectedServices
+    const displayServices = selectedProvider && bookedServices.length > 0 ? bookedServices : selectedServices;
+    const hasProvider = !!selectedProvider;
+
+    // Calculate prices only if provider is selected
+    const subtotal = hasProvider
+        ? displayServices.reduce((sum, service) => {
+              const price = providerServicePrices[service.id] || 0;
+              return sum + price;
+          }, 0)
+        : 0;
 
     const serviceFee = subtotal * (serviceFeePercentage / 100);
     const vat = (subtotal + serviceFee) * (vatPercentage / 100);
     const totalBeforeDiscount = subtotal + serviceFee + vat;
     const finalTotal = discount ? totalBeforeDiscount - discount : totalBeforeDiscount;
 
-    if (selectedServices.length === 0) {
-        return null;
+    const handleRemoveService = (serviceToRemove: Service) => {
+        setSelectedServices(selectedServices.filter((s) => s.id !== serviceToRemove.id));
+    };
+
+    if (displayServices.length === 0 && !collectionType) {
+        return (
+            <div className={cn('bg-card border border-border rounded-2xl p-6', className)}>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Booking Summary</h3>
+                <p className="text-sm text-muted-foreground text-center py-4">
+                    Select services to begin
+                </p>
+            </div>
+        );
     }
 
     return (
@@ -68,8 +88,11 @@ export function BookingSummary({ className }: BookingSummaryProps) {
                         <div className="text-sm font-medium text-foreground">
                             {format(selectedDate, 'EEE, dd MMM yyyy')}
                         </div>
-                        {timeOfDay && (
-                            <div className="text-xs text-muted-foreground mt-1 capitalize">{timeOfDay}</div>
+                        {selectedSlot && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Clock className="w-3 h-3" />
+                                {selectedSlot.time}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -93,46 +116,76 @@ export function BookingSummary({ className }: BookingSummaryProps) {
             )}
 
             {/* Selected Services */}
-            <div className="space-y-2">
-                <h4 className="text-sm font-medium text-foreground">Selected Tests</h4>
-                {selectedServices.map((service) => (
-                    <div key={service.id} className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                            <div className="text-sm text-foreground truncate">{service.service_name}</div>
-                            <div className="text-xs text-muted-foreground">{service.service_code}</div>
-                        </div>
-                        <div className="text-sm font-medium text-foreground whitespace-nowrap">
-                            £{(service.base_price || 0).toFixed(2)}
-                        </div>
+            {displayServices.length > 0 && (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Stethoscope className="w-4 h-4 text-muted-foreground" />
+                        <h4 className="text-sm font-medium text-foreground">
+                            Selected Tests ({displayServices.length})
+                        </h4>
                     </div>
-                ))}
-            </div>
+                    <div className="space-y-1.5">
+                        {displayServices.map((service) => (
+                            <div key={service.id} className="flex items-center justify-between gap-2 group">
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-foreground truncate">{service.service_name}</div>
+                                </div>
+                                {hasProvider ? (
+                                    <div className="text-sm font-medium text-foreground whitespace-nowrap">
+                                        £{(providerServicePrices[service.id] || 0).toFixed(2)}
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveService(service)}
+                                        className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                        aria-label={`Remove ${service.service_name}`}
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-            {/* Cost Breakdown */}
-            <div className="space-y-2 pt-3 border-t border-border">
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground">£{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Service Fee ({serviceFeePercentage}%)</span>
-                    <span className="text-foreground">£{serviceFee.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">VAT ({vatPercentage}%)</span>
-                    <span className="text-foreground">£{vat.toFixed(2)}</span>
-                </div>
-                {discount && discount > 0 && (
+            {/* Cost Breakdown - Only show after provider selection */}
+            {hasProvider && subtotal > 0 && (
+                <div className="space-y-2 pt-3 border-t border-border">
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-green-600 dark:text-green-400">Discount</span>
-                        <span className="text-green-600 dark:text-green-400">-£{discount.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-foreground">£{subtotal.toFixed(2)}</span>
                     </div>
-                )}
-                <div className="flex items-center justify-between text-base font-semibold pt-2 border-t border-border">
-                    <span className="text-foreground">Total</span>
-                    <span className="text-primary">£{finalTotal.toFixed(2)}</span>
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Service Fee ({serviceFeePercentage}%)</span>
+                        <span className="text-foreground">£{serviceFee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">VAT ({vatPercentage}%)</span>
+                        <span className="text-foreground">£{vat.toFixed(2)}</span>
+                    </div>
+                    {discount && discount > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-green-600 dark:text-green-400">Discount</span>
+                            <span className="text-green-600 dark:text-green-400">-£{discount.toFixed(2)}</span>
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between text-base font-semibold pt-2 border-t border-border">
+                        <span className="text-foreground">Total</span>
+                        <span className="text-primary">£{finalTotal.toFixed(2)}</span>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Message when no provider selected yet */}
+            {!hasProvider && displayServices.length > 0 && (
+                <div className="pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground text-center">
+                        Prices will be shown after selecting a provider
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

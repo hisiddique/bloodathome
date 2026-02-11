@@ -14,11 +14,35 @@ interface CreateDraftData {
     collection_type: string;
     is_nhs_test: boolean;
     service_ids: string[];
-    location?: BookingLocation;
+    location?: {
+        postcode: string;
+        address?: string;
+        address_line1?: string;
+        address_line2?: string;
+        city?: string;
+    };
+    service_address_line1?: string;
+    service_address_line2?: string;
+    service_town_city?: string;
+    service_postcode?: string;
     selected_date?: string;
-    time_of_day?: string;
-    provider_id?: string;
-    patient_details?: PatientDetailsData;
+    time_slot?: string;
+    provider_id: string;
+    patient_details?: {
+        first_name: string;
+        last_name: string;
+        email: string;
+        phone: string;
+        date_of_birth: string;
+        nhs_number?: string;
+        is_under_16?: boolean;
+        guardian_name?: string;
+        guardian_confirmed?: boolean;
+        notes?: string;
+    };
+    guest_name?: string;
+    guest_email?: string;
+    guest_phone?: string;
 }
 
 interface PaymentIntentResponse {
@@ -91,40 +115,37 @@ export function useBookingApi() {
 
     const searchProviders = async (params: SearchProvidersParams): Promise<Provider[]> => {
         try {
-            const queryParams = new URLSearchParams({
-                lat: params.lat.toString(),
-                lng: params.lng.toString(),
-            });
-
-            if (params.service_ids && params.service_ids.length > 0) {
-                params.service_ids.forEach((id) => queryParams.append('service_ids[]', id));
-            }
-
-            if (params.collection_type) {
-                queryParams.append('collection_type', params.collection_type);
-            }
-
-            if (params.date) {
-                queryParams.append('date', params.date);
-            }
-
-            if (params.radius_km) {
-                queryParams.append('radius_km', params.radius_km.toString());
-            }
-
-            const response = await fetch(`/api/providers/search?${queryParams.toString()}`, {
+            const response = await fetch('/api/providers/search', {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': getCsrfToken(),
                 },
+                body: JSON.stringify({
+                    latitude: params.lat,
+                    longitude: params.lng,
+                    service_ids: params.service_ids,
+                    collection_type: params.collection_type,
+                    radius_km: params.radius_km,
+                }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to search providers');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Provider search failed:', response.status, errorData);
+
+                // For 422 validation errors, build a readable message from field errors
+                if (response.status === 422 && errorData.errors) {
+                    const fieldErrors = Object.values(errorData.errors).flat().join('. ');
+                    throw new Error(fieldErrors || errorData.message || 'Validation failed');
+                }
+
+                throw new Error(errorData.message || `Failed to search providers (${response.status})`);
             }
 
-            const data = await response.json();
-            return data.providers || data;
+            const responseData = await response.json();
+            return responseData.data?.providers || responseData.providers || [];
         } catch (error) {
             console.error('Error searching providers:', error);
             throw error;
@@ -144,8 +165,8 @@ export function useBookingApi() {
                 throw new Error('Failed to fetch provider availability');
             }
 
-            const data = await response.json();
-            return data.timeSlots || data;
+            const responseData = await response.json();
+            return responseData.data?.slots || responseData.slots || [];
         } catch (error) {
             console.error('Error fetching provider availability:', error);
             throw error;
@@ -170,7 +191,12 @@ export function useBookingApi() {
             }
 
             const responseData = await response.json();
-            return responseData.draft || responseData;
+            return {
+                id: responseData.data?.booking_id,
+                session_token: responseData.data?.draft_token,
+                total_amount: responseData.data?.total_cost,
+                expires_at: responseData.data?.expires_at,
+            };
         } catch (error) {
             console.error('Error creating booking draft:', error);
             throw error;
@@ -204,13 +230,14 @@ export function useBookingApi() {
 
     const createPaymentIntent = async (draftId: string): Promise<PaymentIntentResponse> => {
         try {
-            const response = await fetch(`/api/booking-drafts/${draftId}/payment-intent`, {
+            const response = await fetch('/api/booking-drafts/payment-intent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': getCsrfToken(),
                 },
+                body: JSON.stringify({ booking_id: draftId }),
             });
 
             if (!response.ok) {
@@ -218,10 +245,10 @@ export function useBookingApi() {
                 throw new Error(errorData.message || 'Failed to create payment intent');
             }
 
-            const data = await response.json();
+            const responseData = await response.json();
             return {
-                clientSecret: data.clientSecret,
-                amount: data.amount,
+                clientSecret: responseData.data?.client_secret,
+                amount: responseData.data?.amount,
             };
         } catch (error) {
             console.error('Error creating payment intent:', error);
@@ -278,10 +305,10 @@ export function useBookingApi() {
                 throw new Error(errorData.message || 'Failed to confirm booking');
             }
 
-            const data = await response.json();
+            const responseData = await response.json();
             return {
-                bookingId: data.bookingId,
-                confirmationNumber: data.confirmationNumber,
+                bookingId: responseData.data?.booking?.id,
+                confirmationNumber: responseData.data?.confirmation_number,
             };
         } catch (error) {
             console.error('Error confirming booking:', error);

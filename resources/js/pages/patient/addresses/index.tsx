@@ -6,21 +6,10 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Form, Head, router } from '@inertiajs/react';
-import { MapPin, Plus, Star, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Edit, MapPin, Plus, Star, Trash2 } from 'lucide-react';
 
 interface Address {
     id: string;
@@ -39,28 +28,26 @@ interface AddressesProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Saved Addresses',
-        href: '/patient/addresses',
+        href: '/addresses',
     },
 ];
 
 export default function Addresses({ addresses = [] }: AddressesProps) {
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
     const handleSetDefault = (addressId: string) => {
-        router.put(`/patient/addresses/${addressId}/default`, {});
+        router.put(`/addresses/${addressId}/default`, {});
     };
 
     const handleDelete = (addressId: string) => {
         if (confirm('Are you sure you want to delete this address?')) {
-            router.delete(`/patient/addresses/${addressId}`);
+            router.delete(`/addresses/${addressId}`);
         }
     };
 
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Saved Addresses" />
 
-            <div className="mx-auto max-w-4xl p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold">Saved Addresses</h1>
@@ -68,135 +55,12 @@ export default function Addresses({ addresses = [] }: AddressesProps) {
                             Manage your saved addresses for quick booking
                         </p>
                     </div>
-                    <Dialog
-                        open={isAddDialogOpen}
-                        onOpenChange={setIsAddDialogOpen}
-                    >
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 size-4" />
-                                Add Address
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Add New Address</DialogTitle>
-                                <DialogDescription>
-                                    Add a new address to your saved addresses
-                                </DialogDescription>
-                            </DialogHeader>
-                            <Form
-                                action="/patient/addresses"
-                                method="post"
-                                onSuccess={() => setIsAddDialogOpen(false)}
-                                className="space-y-4"
-                            >
-                                {({ processing, errors }) => (
-                                    <>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="label">
-                                                Label (e.g., Home, Work)
-                                            </Label>
-                                            <Input
-                                                id="label"
-                                                name="label"
-                                                required
-                                                placeholder="Home"
-                                            />
-                                            {errors.label && (
-                                                <p className="text-sm text-destructive">
-                                                    {errors.label}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="address_line1">
-                                                Address Line 1
-                                            </Label>
-                                            <Input
-                                                id="address_line1"
-                                                name="address_line1"
-                                                required
-                                                placeholder="123 Main Street"
-                                            />
-                                            {errors.address_line1 && (
-                                                <p className="text-sm text-destructive">
-                                                    {errors.address_line1}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="address_line2">
-                                                Address Line 2 (Optional)
-                                            </Label>
-                                            <Input
-                                                id="address_line2"
-                                                name="address_line2"
-                                                placeholder="Apartment 4B"
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-4 md:grid-cols-2">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="city">
-                                                    City
-                                                </Label>
-                                                <Input
-                                                    id="city"
-                                                    name="city"
-                                                    required
-                                                    placeholder="London"
-                                                />
-                                                {errors.city && (
-                                                    <p className="text-sm text-destructive">
-                                                        {errors.city}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="postcode">
-                                                    Postcode
-                                                </Label>
-                                                <Input
-                                                    id="postcode"
-                                                    name="postcode"
-                                                    required
-                                                    placeholder="SW1A 1AA"
-                                                />
-                                                {errors.postcode && (
-                                                    <p className="text-sm text-destructive">
-                                                        {errors.postcode}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-2 pt-4">
-                                            <Button
-                                                type="submit"
-                                                disabled={processing}
-                                                className="flex-1"
-                                            >
-                                                Save Address
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setIsAddDialogOpen(false)
-                                                }
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
+                    <Link href="/addresses/create">
+                        <Button>
+                            <Plus className="mr-2 size-4" />
+                            Add Address
+                        </Button>
+                    </Link>
                 </div>
 
                 {addresses.length === 0 ? (
@@ -206,13 +70,9 @@ export default function Addresses({ addresses = [] }: AddressesProps) {
                             <CardTitle className="mb-2">
                                 No saved addresses
                             </CardTitle>
-                            <CardDescription className="mb-4">
+                            <CardDescription>
                                 Add your first address to speed up booking
                             </CardDescription>
-                            <Button onClick={() => setIsAddDialogOpen(true)}>
-                                <Plus className="mr-2 size-4" />
-                                Add Address
-                            </Button>
                         </CardContent>
                     </Card>
                 ) : (
@@ -254,6 +114,15 @@ export default function Addresses({ addresses = [] }: AddressesProps) {
                                                 Set as Default
                                             </Button>
                                         )}
+                                        <Link href={`/addresses/${address.id}/edit`}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                            >
+                                                <Edit className="mr-2 size-4" />
+                                                Edit
+                                            </Button>
+                                        </Link>
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -271,6 +140,6 @@ export default function Addresses({ addresses = [] }: AddressesProps) {
                     </div>
                 )}
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

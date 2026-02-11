@@ -104,7 +104,7 @@ export default function TwoFactorChallenge() {
 
                             <Button
                                 type="submit"
-                                className="w-full"
+                                className="w-full py-6 text-base"
                                 disabled={processing}
                             >
                                 Continue

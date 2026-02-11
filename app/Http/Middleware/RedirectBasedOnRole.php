@@ -21,19 +21,10 @@ class RedirectBasedOnRole
 
         $user = $request->user();
 
-        // Check if user is trying to access a panel they don't have access to
+        // sadmin routes are handled by Filament with admin guard
         $path = $request->path();
 
-        // sadmin routes are handled by Filament with admin guard
         if (str_starts_with($path, 'sadmin') && ! $this->isAdmin($user)) {
-            return redirect($this->getRedirectPath($user));
-        }
-
-        if (str_starts_with($path, 'provider') && ! $user->hasRole('provider')) {
-            return redirect($this->getRedirectPath($user));
-        }
-
-        if (str_starts_with($path, 'patient') && ! $user->hasRole('patient')) {
             return redirect($this->getRedirectPath($user));
         }
 
@@ -53,12 +44,8 @@ class RedirectBasedOnRole
      */
     public function getRedirectPath(mixed $user): string
     {
-        if ($user->hasRole('provider')) {
-            return '/provider/dashboard';
-        }
-
-        if ($user->hasRole('patient')) {
-            return '/patient/dashboard';
+        if ($user->hasRole('provider') || $user->hasRole('patient')) {
+            return '/dashboard';
         }
 
         return '/';

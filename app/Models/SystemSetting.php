@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * SystemSetting Model
@@ -42,19 +43,27 @@ class SystemSetting extends Model
      */
     public static function getValue(string $key, mixed $default = null): mixed
     {
-        $setting = static::where('key', $key)->first();
+        try {
+            if (! Schema::hasTable('system_settings')) {
+                return $default;
+            }
 
-        if (! $setting) {
+            $setting = static::where('key', $key)->first();
+
+            if (! $setting) {
+                return $default;
+            }
+
+            return match ($setting->type) {
+                'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
+                'integer' => (int) $setting->value,
+                'float' => (float) $setting->value,
+                'array', 'json' => json_decode($setting->value, true),
+                default => $setting->value,
+            };
+        } catch (\Throwable) {
             return $default;
         }
-
-        return match ($setting->type) {
-            'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
-            'integer' => (int) $setting->value,
-            'float' => (float) $setting->value,
-            'array', 'json' => json_decode($setting->value, true),
-            default => $setting->value,
-        };
     }
 
     /**

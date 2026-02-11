@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
@@ -26,7 +26,7 @@ interface EditMedicalInfoProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Medical Information',
-        href: '/patient/medical-info',
+        href: '/medical-info',
     },
 ];
 
@@ -34,10 +34,10 @@ export default function EditMedicalInfo({
     medicalInfo,
 }: EditMedicalInfoProps) {
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Medical Information" />
 
-            <div className="mx-auto max-w-2xl p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Medical Information"
@@ -45,7 +45,7 @@ export default function EditMedicalInfo({
                     />
 
                     <Form
-                        action="/patient/medical-info"
+                        action="/medical-info"
                         method="put"
                         options={{
                             preserveScroll: true,
@@ -214,6 +214,6 @@ export default function EditMedicalInfo({
                     </Form>
                 </div>
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

@@ -30,6 +30,11 @@ class LoginResponse implements LoginResponseContract
                 ->with('status', 'Please use the admin login page.');
         }
 
+        // If user has not verified email, redirect to verification page
+        if (! $user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
+
         $redirectPath = (new RedirectBasedOnRole)->getRedirectPath($user);
 
         return $request->wantsJson()

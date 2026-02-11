@@ -20,6 +20,30 @@ class SearchProvidersRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('collection_type')) {
+            $collectionTypeInput = $this->input('collection_type');
+
+            // Map frontend format to database format
+            $collectionTypeMap = [
+                'home_visit' => 'Home Visit',
+                'clinic' => 'Clinic',
+                'Home Visit' => 'Home Visit',
+                'Clinic' => 'Clinic',
+            ];
+
+            $normalizedType = $collectionTypeMap[$collectionTypeInput] ?? $collectionTypeInput;
+
+            $this->merge([
+                'collection_type' => $normalizedType,
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
@@ -28,7 +52,9 @@ class SearchProvidersRequest extends FormRequest
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'radius_km' => ['nullable', 'numeric', 'min:1', 'max:50'],
-            'service_id' => ['nullable', 'string', 'exists:services,id'],
+            'service_id' => ['nullable', 'string'],
+            'service_ids' => ['nullable', 'array'],
+            'service_ids.*' => ['string'],
             'collection_type' => ['nullable', 'string', 'in:Home Visit,Clinic'],
         ];
     }
@@ -46,6 +72,7 @@ class SearchProvidersRequest extends FormRequest
             'radius_km.min' => 'Search radius must be at least 1 km.',
             'radius_km.max' => 'Search radius cannot exceed 50 km.',
             'service_id.exists' => 'Selected service does not exist.',
+            'service_ids.*.exists' => 'One or more selected services do not exist.',
             'collection_type.in' => 'Invalid collection type.',
         ];
     }

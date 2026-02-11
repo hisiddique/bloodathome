@@ -1,5 +1,4 @@
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -7,11 +6,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import PatientLayout from '@/layouts/patient-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { Calendar, Clock, MapPin, Plus, CreditCard, Heart } from 'lucide-react';
+import { Calendar, Clock, MapPin, CreditCard, Heart } from 'lucide-react';
 
 interface Booking {
     id: string;
@@ -36,7 +35,7 @@ interface DashboardProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/patient/dashboard',
+        href: '/dashboard',
     },
 ];
 
@@ -45,22 +44,14 @@ export default function PatientDashboard({
     recentActivity = [],
 }: DashboardProps) {
     return (
-        <PatientLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Patient Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Welcome back!</h1>
-                        <p className="text-muted-foreground">
-                            Manage your appointments and health information
-                        </p>
-                    </div>
-                    <Link href="/booking">
-                        <Button>
-                            <Plus className="mr-2 size-4" />
-                            Book Appointment
-                        </Button>
-                    </Link>
+                <div>
+                    <h1 className="text-2xl font-bold">Welcome back!</h1>
+                    <p className="text-muted-foreground">
+                        Manage your appointments and health information
+                    </p>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
@@ -112,14 +103,9 @@ export default function PatientDashboard({
                             {upcomingBookings.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-center">
                                     <Calendar className="mb-2 size-12 text-muted-foreground" />
-                                    <p className="mb-4 text-sm text-muted-foreground">
+                                    <p className="text-sm text-muted-foreground">
                                         No upcoming appointments
                                     </p>
-                                    <Link href="/booking">
-                                        <Button variant="outline" size="sm">
-                                            Book Now
-                                        </Button>
-                                    </Link>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -169,7 +155,7 @@ export default function PatientDashboard({
                                         </div>
                                     ))}
                                     <Link
-                                        href="/patient/bookings"
+                                        href="/bookings"
                                         className="block text-center text-sm text-primary hover:underline"
                                     >
                                         View all bookings
@@ -218,7 +204,7 @@ export default function PatientDashboard({
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                    <Link href="/patient/medical-info">
+                    <Link href="/medical-info">
                         <Card className="cursor-pointer transition-colors hover:bg-accent">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -234,7 +220,7 @@ export default function PatientDashboard({
                         </Card>
                     </Link>
 
-                    <Link href="/patient/addresses">
+                    <Link href="/addresses">
                         <Card className="cursor-pointer transition-colors hover:bg-accent">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -250,7 +236,7 @@ export default function PatientDashboard({
                         </Card>
                     </Link>
 
-                    <Link href="/patient/payment-methods">
+                    <Link href="/payment-methods">
                         <Card className="cursor-pointer transition-colors hover:bg-accent">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -267,6 +253,6 @@ export default function PatientDashboard({
                     </Link>
                 </div>
             </div>
-        </PatientLayout>
+        </AppLayout>
     );
 }

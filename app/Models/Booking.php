@@ -29,6 +29,7 @@ class Booking extends Model
      */
     protected $fillable = [
         'user_id',
+        'dependent_id',
         'provider_id',
         'status_id',
         'confirmation_number',
@@ -52,6 +53,11 @@ class Booking extends Model
         'draft_expires_at',
         'cancelled_at',
         'cancellation_reason',
+        // Guest booking fields
+        'guest_email',
+        'guest_name',
+        'guest_phone',
+        'is_guest_booking',
     ];
 
     /**
@@ -75,6 +81,14 @@ class Booking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the dependent for this booking (if booking is for a dependent).
+     */
+    public function dependent(): BelongsTo
+    {
+        return $this->belongsTo(Dependent::class);
     }
 
     /**

@@ -1,8 +1,8 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Home, Search, CalendarCheck, User, type LucideIcon } from 'lucide-react';
+import { Home, Search, CalendarCheck, User, HelpCircle, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn, isSameUrl } from '@/lib/utils';
-import type { SharedData } from '@/types';
+import type { PageProps } from '@/types';
 
 interface NavItemProps {
     icon: LucideIcon;
@@ -30,14 +30,17 @@ function NavItem({ icon: Icon, label, href, isActive }: NavItemProps) {
 }
 
 export function BottomNav() {
-    const page = usePage<SharedData>();
+    const { props, url } = usePage<PageProps>();
     const { t } = useTranslation();
+    const isAuthenticated = !!props.auth?.user;
 
     const navItems = [
         { icon: Home, label: t('Home'), href: '/' },
-        { icon: Search, label: t('Find'), href: '/search' },
-        { icon: CalendarCheck, label: t('Bookings'), href: '/bookings' },
-        { icon: User, label: t('Account'), href: '/login' },
+        { icon: Search, label: t('Book Now'), href: '/book' },
+        ...(isAuthenticated
+            ? [{ icon: CalendarCheck, label: t('Bookings'), href: '/bookings' }]
+            : [{ icon: HelpCircle, label: t('FAQ'), href: '/faq' }]),
+        { icon: User, label: isAuthenticated ? t('Account') : t('Log in'), href: isAuthenticated ? '/dashboard' : '/login' },
     ];
 
     return (
@@ -49,7 +52,7 @@ export function BottomNav() {
                         icon={item.icon}
                         label={item.label}
                         href={item.href}
-                        isActive={isSameUrl(page.url, item.href)}
+                        isActive={isSameUrl(url, item.href)}
                     />
                 ))}
             </div>
