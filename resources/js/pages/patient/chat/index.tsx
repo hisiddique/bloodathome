@@ -69,7 +69,7 @@ export default function ChatIndex({ conversations = [] }: ChatIndexProps) {
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold">Messages</h1>
                     <p className="text-muted-foreground">
-                        Chat with your phlebotomists
+                        Chat with your providers
                     </p>
                 </div>
 
@@ -98,7 +98,7 @@ export default function ChatIndex({ conversations = [] }: ChatIndexProps) {
                             <CardDescription>
                                 {searchQuery
                                     ? 'Try a different search term'
-                                    : 'Your conversations with phlebotomists will appear here'}
+                                    : 'Your conversations with providers will appear here'}
                             </CardDescription>
                         </CardContent>
                     </Card>

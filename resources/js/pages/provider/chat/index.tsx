@@ -23,7 +23,7 @@ interface Conversation {
 }
 
 interface ProviderChatIndexProps {
-    conversations: Conversation[];
+    conversations?: Conversation[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [

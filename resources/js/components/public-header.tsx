@@ -1,9 +1,16 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Menu } from 'lucide-react';
+import { CalendarCheck, ChevronDown, LayoutDashboard, LogOut, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import AppLogo from './app-logo';
-import { cn, isSameUrl } from '@/lib/utils';
+import { isSameUrl, cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 
 interface PublicHeaderProps {
@@ -16,11 +23,6 @@ export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
     const { t } = useTranslation();
 
     const isAuthenticated = !!auth?.user;
-
-    // Determine dashboard URL based on user role
-    const getDashboardUrl = () => {
-        return '/dashboard';
-    };
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -80,7 +82,7 @@ export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
                                 : "text-muted-foreground"
                         )}
                     >
-                        <span>{t('Become a Phlebotomist')}</span>
+                        <span>{t('Become a Provider')}</span>
                     </Link>
                     <Link
                         href="/faq"
@@ -99,19 +101,35 @@ export function PublicHeader({ onMenuToggle }: PublicHeaderProps) {
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
                     {isAuthenticated ? (
-                        <>
-                            <Link
-                                href="/bookings"
-                                className="hidden lg:inline-flex text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary"
-                            >
-                                {t('My Bookings')}
-                            </Link>
-                            <Button variant="ghost" className="hidden lg:inline-flex" asChild>
-                                <Link href={getDashboardUrl()}>
-                                    {t('Dashboard')}
-                                </Link>
-                            </Button>
-                        </>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="hidden lg:inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary focus-visible:outline-none">
+                                    {auth.user?.full_name || 'User'}
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem asChild>
+                                    <Link href="/dashboard" className="flex items-center gap-2">
+                                        <LayoutDashboard className="h-4 w-4" />
+                                        {t('Dashboard')}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/bookings" className="flex items-center gap-2">
+                                        <CalendarCheck className="h-4 w-4" />
+                                        {t('My Bookings')}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/logout" method="post" as="button" className="flex w-full items-center gap-2 text-destructive">
+                                        <LogOut className="h-4 w-4" />
+                                        {t('Log out')}
+                                    </Link>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     ) : (
                         <>
                             <Button variant="ghost" className="hidden lg:inline-flex" asChild>

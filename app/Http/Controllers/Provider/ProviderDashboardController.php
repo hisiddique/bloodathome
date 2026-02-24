@@ -15,7 +15,7 @@ class ProviderDashboardController extends Controller
 
         $upcomingBookings = Booking::query()
             ->where('provider_id', $provider->id)
-            ->with(['user', 'status', 'collectionType'])
+            ->with(['user', 'status', 'items.service'])
             ->whereHas('status', function ($q) {
                 $q->whereIn('name', ['Pending', 'Confirmed']);
             })
@@ -23,7 +23,26 @@ class ProviderDashboardController extends Controller
             ->orderBy('scheduled_date')
             ->orderBy('time_slot')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function (Booking $booking) {
+                $patientName = $booking->user?->full_name ?? $booking->guest_name ?? 'Unknown Patient';
+                $serviceName = $booking->items->first()?->service?->name ?? 'Blood Test';
+                $address = collect([
+                    $booking->service_address_line1,
+                    $booking->service_town_city,
+                    $booking->service_postcode,
+                ])->filter()->implode(', ');
+
+                return [
+                    'id' => $booking->id,
+                    'patient_name' => $patientName,
+                    'scheduled_date' => $booking->scheduled_date?->toDateString(),
+                    'time_slot' => $booking->time_slot,
+                    'address' => $address,
+                    'status' => $booking->status?->name,
+                    'service' => $serviceName,
+                ];
+            });
 
         $todayBookings = Booking::query()
             ->where('provider_id', $provider->id)
@@ -65,7 +84,7 @@ class ProviderDashboardController extends Controller
 
         return Inertia::render('provider/dashboard', [
             'provider' => $provider->load('type', 'status'),
-            'upcomingBookings' => $upcomingBookings,
+            'upcoming_bookings' => $upcomingBookings,
             'stats' => $stats,
         ]);
     }

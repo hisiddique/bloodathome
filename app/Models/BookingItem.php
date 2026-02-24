@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 /**
  * BookingItem Model
@@ -62,6 +63,23 @@ class BookingItem extends Model
     public function providerService(): BelongsTo
     {
         return $this->belongsTo(ProviderService::class, 'catalog_id');
+    }
+
+    /**
+     * Get the underlying service for this item via the provider service catalog.
+     *
+     * BookingItem.catalog_id → ProviderService.id → ProviderService.service_id → Service.id
+     */
+    public function service(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Service::class,
+            ProviderService::class,
+            'id',         // Foreign key on provider_services (matched against catalog_id)
+            'id',         // Foreign key on services (matched against service_id)
+            'catalog_id', // Local key on booking_items
+            'service_id', // Local key on provider_services
+        );
     }
 
     /**

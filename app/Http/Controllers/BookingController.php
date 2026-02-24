@@ -107,11 +107,15 @@ class BookingController extends Controller
         $userDependents = [];
 
         if (auth()->check()) {
-            $user = auth()->user();
+            $user = auth()->user()->load('patient');
             $userData = [
                 'name' => $user->full_name,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'date_of_birth' => $user->patient?->date_of_birth?->format('Y-m-d'),
+                'nhs_number' => $user->patient?->nhs_number,
             ];
 
             $userAddresses = $user->addresses()->get()->map(function ($address) {
@@ -129,6 +133,7 @@ class BookingController extends Controller
             $userPaymentMethods = $user->paymentMethods()
                 ->get()
                 ->filter(fn ($pm) => ! $pm->isExpired())
+                ->values()
                 ->map(function ($method) {
                     return [
                         'id' => $method->id,

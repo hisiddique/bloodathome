@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignUlid('booking_id')->constrained('bookings')->cascadeOnDelete();
             $table->foreignUlid('catalog_id')->constrained('provider_services')->cascadeOnDelete();
-            $table->unsignedInteger('quantity')->default(1);
             $table->decimal('item_cost', 10, 2);
             $table->decimal('agreed_comm_percent', 5, 2);
             $table->timestamp('created_at');

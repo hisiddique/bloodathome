@@ -42,6 +42,11 @@ class Booking extends Model
         'service_town_city',
         'service_postcode',
         'grand_total_cost',
+        'subtotal_amount',
+        'service_fee_percent',
+        'service_fee_amount',
+        'vat_percent',
+        'vat_amount',
         'discount_amount',
         'promo_code_id',
         'stripe_payment_intent_id',
@@ -58,6 +63,8 @@ class Booking extends Model
         'guest_name',
         'guest_phone',
         'is_guest_booking',
+        'consented_at',
+        'consent_version',
     ];
 
     /**
@@ -68,9 +75,15 @@ class Booking extends Model
         return [
             'scheduled_date' => 'date',
             'grand_total_cost' => 'decimal:2',
+            'subtotal_amount' => 'decimal:2',
+            'service_fee_percent' => 'decimal:2',
+            'service_fee_amount' => 'decimal:2',
+            'vat_percent' => 'decimal:2',
+            'vat_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'guardian_confirmed' => 'boolean',
             'draft_expires_at' => 'datetime',
+            'consented_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
     }
@@ -129,14 +142,6 @@ class Booking extends Model
     public function items(): HasMany
     {
         return $this->hasMany(BookingItem::class);
-    }
-
-    /**
-     * Get all consents for this booking.
-     */
-    public function consents(): HasMany
-    {
-        return $this->hasMany(BookingConsent::class);
     }
 
     /**
@@ -207,6 +212,31 @@ class Booking extends Model
     public function isCancelled(): bool
     {
         return ! is_null($this->cancelled_at);
+    }
+
+    /**
+     * Calculate full pricing breakdown from a subtotal using current system settings.
+     *
+     * @return array{subtotal_amount: float, service_fee_percent: float, service_fee_amount: float, vat_percent: float, vat_amount: float, discount_amount: float, grand_total_cost: float}
+     */
+    public static function calculatePricing(float $subtotal, float $discountAmount = 0): array
+    {
+        $serviceFeePercent = (float) SystemSetting::getValue('platform.service_fee_percentage', 5);
+        $vatPercent = (float) SystemSetting::getValue('platform.vat_percentage', 20);
+
+        $serviceFeeAmount = round($subtotal * ($serviceFeePercent / 100), 2);
+        $vatAmount = round(($subtotal + $serviceFeeAmount) * ($vatPercent / 100), 2);
+        $grandTotal = round($subtotal + $serviceFeeAmount + $vatAmount - $discountAmount, 2);
+
+        return [
+            'subtotal_amount' => $subtotal,
+            'service_fee_percent' => $serviceFeePercent,
+            'service_fee_amount' => $serviceFeeAmount,
+            'vat_percent' => $vatPercent,
+            'vat_amount' => $vatAmount,
+            'discount_amount' => $discountAmount,
+            'grand_total_cost' => $grandTotal,
+        ];
     }
 
     /**

@@ -15,10 +15,10 @@ interface Dependent {
     last_name: string;
     date_of_birth: string;
     relationship: string;
-    nhs_number?: string;
-    allergies?: string;
-    medical_conditions?: string;
-    medications?: string;
+    nhs_number: string | null;
+    allergies: string | null;
+    medical_conditions: string | null;
+    medications: string | null;
 }
 
 interface EditDependentProps {
@@ -129,7 +129,7 @@ export default function EditDependent({ dependent }: EditDependentProps) {
                                     <Input
                                         id="nhs_number"
                                         name="nhs_number"
-                                        defaultValue={dependent.nhs_number}
+                                        defaultValue={dependent.nhs_number ?? ''}
                                         placeholder="1234567890"
                                         maxLength={10}
                                     />
@@ -146,7 +146,7 @@ export default function EditDependent({ dependent }: EditDependentProps) {
                                     <Textarea
                                         id="allergies"
                                         name="allergies"
-                                        defaultValue={dependent.allergies}
+                                        defaultValue={dependent.allergies ?? ''}
                                         placeholder="List any known allergies"
                                         rows={3}
                                     />
@@ -160,7 +160,7 @@ export default function EditDependent({ dependent }: EditDependentProps) {
                                     <Textarea
                                         id="medical_conditions"
                                         name="medical_conditions"
-                                        defaultValue={dependent.medical_conditions}
+                                        defaultValue={dependent.medical_conditions ?? ''}
                                         placeholder="List any medical conditions"
                                         rows={3}
                                     />
@@ -174,7 +174,7 @@ export default function EditDependent({ dependent }: EditDependentProps) {
                                     <Textarea
                                         id="medications"
                                         name="medications"
-                                        defaultValue={dependent.medications}
+                                        defaultValue={dependent.medications ?? ''}
                                         placeholder="List any current medications"
                                         rows={3}
                                     />

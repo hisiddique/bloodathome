@@ -36,6 +36,15 @@ class UserPaymentMethod extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     */
+    protected $hidden = [
+        'stripe_payment_method_id',
+        'stripe_customer_id',
+        'user_id',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      */
     protected function casts(): array

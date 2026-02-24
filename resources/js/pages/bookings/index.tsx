@@ -4,7 +4,7 @@ import { BookingHeader } from "@/components/ui/booking-header";
 import { ChatButton } from "@/components/ui/chat-button";
 import { BookingChat } from "@/components/ui/booking-chat";
 import { Calendar, Clock, MessageCircle } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -67,7 +67,7 @@ export default function MyBookings({ bookings = [] }: MyBookingsProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Phlebotomist</TableHead>
+                        <TableHead>Provider</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead>Address</TableHead>
@@ -91,7 +91,7 @@ export default function MyBookings({ bookings = [] }: MyBookingsProps) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {format(new Date(booking.appointment_date), "MMM d, yyyy")}
+                            {booking.appointment_date ? format(parseISO(booking.appointment_date), "MMM d, yyyy") : '—'}
                           </TableCell>
                           <TableCell>{booking.time_slot}</TableCell>
                           <TableCell className="max-w-[200px] truncate">
@@ -150,7 +150,7 @@ export default function MyBookings({ bookings = [] }: MyBookingsProps) {
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            {format(new Date(booking.appointment_date), "MMM d, yyyy")}
+                            {booking.appointment_date ? format(parseISO(booking.appointment_date), "MMM d, yyyy") : '—'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />

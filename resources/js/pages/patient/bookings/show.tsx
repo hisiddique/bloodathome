@@ -10,10 +10,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
     Calendar,
     Clock,
@@ -24,51 +25,90 @@ import {
     Star,
     User,
 } from 'lucide-react';
-import { useState } from 'react';
+
+interface BookingStatus {
+    id: number;
+    name: string;
+    description?: string;
+}
+
+interface BookingService {
+    id: string;
+    service_name: string;
+    service_code: string;
+    service_description?: string;
+}
+
+interface BookingItem {
+    id: number;
+    item_cost: string;
+    service: BookingService | null;
+}
+
+interface BookingReview {
+    id: string;
+    rating: number;
+    review_text: string;
+}
+
+interface ProviderUser {
+    id: string;
+    full_name: string;
+    email: string;
+    phone?: string;
+    profile_image?: string;
+}
+
+interface BookingProvider {
+    id: string;
+    provider_name?: string;
+    profile_image_url?: string;
+    average_rating: string | number;
+    total_reviews: number;
+    user: ProviderUser;
+}
+
+interface BookingConversation {
+    id: string;
+}
 
 interface Booking {
     id: string;
-    phlebotomist: {
-        id: string;
-        name: string;
-        image: string | null;
-        phone: string;
-        email: string;
-        rating: number;
-        reviews_count: number;
-    };
-    appointment_date: string;
+    confirmation_number: string | null;
+    status: BookingStatus | null;
+    scheduled_date: string;
     time_slot: string;
-    address: string;
-    status: string;
-    total_amount: number;
-    blood_tests: Array<{
-        id: string;
-        name: string;
-        price: number;
-    }>;
-    can_cancel: boolean;
-    can_review: boolean;
-    review?: {
-        rating: number;
-        comment: string;
-    };
+    service_address_line1: string;
+    service_address_line2?: string | null;
+    service_town_city: string;
+    service_postcode: string;
+    subtotal_amount: string | number;
+    service_fee_percent: string | number;
+    service_fee_amount: string | number;
+    vat_percent: string | number;
+    vat_amount: string | number;
+    discount_amount: string | number;
+    grand_total_cost: string | number;
+    provider: BookingProvider | null;
+    items: BookingItem[];
+    review: BookingReview | null;
+    conversation: BookingConversation | null;
 }
 
 interface BookingShowProps {
     booking: Booking;
+    can_cancel: boolean;
+    can_review: boolean;
 }
 
-export default function BookingShow({ booking }: BookingShowProps) {
-    const [showReviewForm, setShowReviewForm] = useState(false);
-
+export default function BookingShow({ booking, can_cancel, can_review }: BookingShowProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'My Bookings',
             href: '/bookings',
         },
         {
-            title: `Booking #${booking.id.slice(0, 8)}`,
+            title: booking.confirmation_number ?? `Booking #${booking.id.slice(0, 8)}`,
             href: `/bookings/${booking.id}`,
         },
     ];
@@ -83,8 +123,8 @@ export default function BookingShow({ booking }: BookingShowProps) {
         }
     };
 
-    const getStatusBadgeVariant = (status: string) => {
-        switch (status.toLowerCase()) {
+    const getStatusBadgeVariant = (statusName: string) => {
+        switch (statusName.toLowerCase()) {
             case 'confirmed':
                 return 'default';
             case 'pending':
@@ -98,9 +138,44 @@ export default function BookingShow({ booking }: BookingShowProps) {
         }
     };
 
+    const formattedAddress = [
+        booking.service_address_line1,
+        booking.service_address_line2,
+        booking.service_town_city,
+        booking.service_postcode,
+    ]
+        .filter(Boolean)
+        .join(', ');
+
+    const providerName =
+        booking.provider?.provider_name ??
+        booking.provider?.user?.full_name ??
+        'Unknown Provider';
+
+    const providerImage =
+        booking.provider?.profile_image_url ??
+        booking.provider?.user?.profile_image ??
+        null;
+
+    const providerPhone = booking.provider?.user?.phone ?? null;
+    const providerEmail = booking.provider?.user?.email ?? null;
+
+    const rating = parseFloat(String(booking.provider?.average_rating ?? 0));
+    const reviewsCount = booking.provider?.total_reviews ?? 0;
+
+    const subtotalAmount = parseFloat(String(booking.subtotal_amount ?? 0));
+    const serviceFeePercent = parseFloat(String(booking.service_fee_percent ?? 0));
+    const serviceFeeAmount = parseFloat(String(booking.service_fee_amount ?? 0));
+    const vatPercent = parseFloat(String(booking.vat_percent ?? 0));
+    const vatAmount = parseFloat(String(booking.vat_amount ?? 0));
+    const discountAmount = parseFloat(String(booking.discount_amount ?? 0));
+    const totalAmount = parseFloat(String(booking.grand_total_cost ?? 0));
+
+    const statusName = booking.status?.name ?? 'Unknown';
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Booking #${booking.id.slice(0, 8)}`} />
+            <Head title={booking.confirmation_number ?? `Booking #${booking.id.slice(0, 8)}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
                 <div className="mb-6 flex items-center justify-between">
@@ -109,14 +184,14 @@ export default function BookingShow({ booking }: BookingShowProps) {
                             Booking Details
                         </h1>
                         <p className="text-muted-foreground">
-                            Reference: #{booking.id.slice(0, 8)}
+                            Ref: {booking.confirmation_number ?? `#${booking.id.slice(0, 8)}`}
                         </p>
                     </div>
                     <Badge
-                        variant={getStatusBadgeVariant(booking.status)}
+                        variant={getStatusBadgeVariant(statusName)}
                         className="text-sm"
                     >
-                        {booking.status}
+                        {statusName}
                     </Badge>
                 </div>
 
@@ -135,12 +210,14 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                                 Date
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {format(
-                                                    new Date(
-                                                        booking.appointment_date,
-                                                    ),
-                                                    'EEEE, MMMM d, yyyy',
-                                                )}
+                                                {booking.scheduled_date
+                                                    ? format(
+                                                          parseISO(
+                                                              booking.scheduled_date,
+                                                          ),
+                                                          'EEEE, MMMM d, yyyy',
+                                                      )
+                                                    : 'Not scheduled'}
                                             </p>
                                         </div>
                                     </div>
@@ -152,7 +229,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                                 Time
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {booking.time_slot}
+                                                {booking.time_slot ?? 'TBC'}
                                             </p>
                                         </div>
                                     </div>
@@ -167,7 +244,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                             Location
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            {booking.address}
+                                            {formattedAddress || 'No address provided'}
                                         </p>
                                     </div>
                                 </div>
@@ -179,31 +256,36 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                         Blood Tests
                                     </p>
                                     <div className="space-y-2">
-                                        {booking.blood_tests.map((test) => (
+                                        {booking.items.map((item) => (
                                             <div
-                                                key={test.id}
+                                                key={item.id}
                                                 className="flex items-center justify-between rounded-lg border p-3"
                                             >
                                                 <span className="text-sm">
-                                                    {test.name}
+                                                    {item.service?.service_name ?? 'Unknown Service'}
                                                 </span>
                                                 <span className="text-sm font-medium">
-                                                    £{test.price.toFixed(2)}
+                                                    £{parseFloat(String(item.item_cost)).toFixed(2)}
                                                 </span>
                                             </div>
                                         ))}
+                                        {booking.items.length === 0 && (
+                                            <p className="text-sm text-muted-foreground">
+                                                No items found.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {booking.can_review && !booking.review && (
+                        {can_review && !booking.review && (
                             <Card className="mt-6">
                                 <CardHeader>
                                     <CardTitle>Leave a Review</CardTitle>
                                     <CardDescription>
                                         Share your experience with{' '}
-                                        {booking.phlebotomist.name}
+                                        {providerName}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -239,18 +321,18 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                                 </div>
 
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="comment">
+                                                    <Label htmlFor="review_text">
                                                         Comment
                                                     </Label>
                                                     <Textarea
-                                                        id="comment"
-                                                        name="comment"
+                                                        id="review_text"
+                                                        name="review_text"
                                                         rows={4}
                                                         placeholder="Tell us about your experience..."
                                                     />
-                                                    {errors.comment && (
+                                                    {errors.review_text && (
                                                         <p className="text-sm text-destructive">
-                                                            {errors.comment}
+                                                            {errors.review_text}
                                                         </p>
                                                     )}
                                                 </div>
@@ -287,7 +369,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                                         ))}
                                     </div>
                                     <p className="mt-2 text-sm text-muted-foreground">
-                                        {booking.review.comment}
+                                        {booking.review.review_text}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -297,64 +379,66 @@ export default function BookingShow({ booking }: BookingShowProps) {
                     <div>
                         <Card>
                             <CardHeader>
-                                <CardTitle>Phlebotomist</CardTitle>
+                                <CardTitle>Provider</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="flex flex-col items-center text-center">
-                                    <img
-                                        src={
-                                            booking.phlebotomist.image ||
-                                            '/placeholder.svg'
-                                        }
-                                        alt={booking.phlebotomist.name}
-                                        className="mb-3 size-20 rounded-full object-cover"
-                                    />
-                                    <h3 className="font-semibold">
-                                        {booking.phlebotomist.name}
-                                    </h3>
-                                    <div className="mt-1 flex items-center gap-1">
-                                        <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                                        <span className="text-sm">
-                                            {booking.phlebotomist.rating.toFixed(
-                                                1,
-                                            )}{' '}
-                                            (
-                                            {
-                                                booking.phlebotomist
-                                                    .reviews_count
-                                            }{' '}
-                                            reviews)
-                                        </span>
-                                    </div>
-                                </div>
+                                {booking.provider ? (
+                                    <>
+                                        <div className="flex flex-col items-center text-center">
+                                            <UserAvatar
+                                                name={providerName}
+                                                imageUrl={providerImage}
+                                                className="mb-3 size-20 text-xl"
+                                            />
+                                            <h3 className="font-semibold">
+                                                {providerName}
+                                            </h3>
+                                            <div className="mt-1 flex items-center gap-1">
+                                                <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                                                <span className="text-sm">
+                                                    {rating.toFixed(1)}{' '}
+                                                    ({reviewsCount} reviews)
+                                                </span>
+                                            </div>
+                                        </div>
 
-                                <Separator />
+                                        <Separator />
 
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Phone className="size-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground">
-                                            {booking.phlebotomist.phone}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <User className="size-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground">
-                                            {booking.phlebotomist.email}
-                                        </span>
-                                    </div>
-                                </div>
+                                        <div className="space-y-2">
+                                            {providerPhone && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <Phone className="size-4 text-muted-foreground" />
+                                                    <span className="text-muted-foreground">
+                                                        {providerPhone}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {providerEmail && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <User className="size-4 text-muted-foreground" />
+                                                    <span className="text-muted-foreground">
+                                                        {providerEmail}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                <Separator />
+                                        <Separator />
 
-                                <Link
-                                    href={`/chat?booking_id=${booking.id}`}
-                                >
-                                    <Button variant="outline" className="w-full">
-                                        <MessageCircle className="mr-2 size-4" />
-                                        Message
-                                    </Button>
-                                </Link>
+                                        <Link
+                                            href={`/chat?booking_id=${booking.id}`}
+                                        >
+                                            <Button variant="outline" className="w-full">
+                                                <MessageCircle className="mr-2 size-4" />
+                                                Message
+                                            </Button>
+                                        </Link>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        No provider assigned yet.
+                                    </p>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -364,15 +448,37 @@ export default function BookingShow({ booking }: BookingShowProps) {
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">
-                                        Subtotal
-                                    </span>
-                                    <span>£{booking.total_amount.toFixed(2)}</span>
+                                    <span className="text-muted-foreground">Subtotal</span>
+                                    <span>£{subtotalAmount.toFixed(2)}</span>
                                 </div>
+                                {serviceFeeAmount > 0 && (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                            Service Fee ({serviceFeePercent}%)
+                                        </span>
+                                        <span>£{serviceFeeAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {vatAmount > 0 && (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                            VAT ({vatPercent}%)
+                                        </span>
+                                        <span>£{vatAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {discountAmount > 0 && (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-green-600 dark:text-green-400">Discount</span>
+                                        <span className="text-green-600 dark:text-green-400">
+                                            -£{discountAmount.toFixed(2)}
+                                        </span>
+                                    </div>
+                                )}
                                 <Separator />
                                 <div className="flex items-center justify-between font-semibold">
                                     <span>Total</span>
-                                    <span>£{booking.total_amount.toFixed(2)}</span>
+                                    <span>£{totalAmount.toFixed(2)}</span>
                                 </div>
                                 <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                                     <CreditCard className="size-4" />
@@ -381,7 +487,7 @@ export default function BookingShow({ booking }: BookingShowProps) {
                             </CardContent>
                         </Card>
 
-                        {booking.can_cancel && (
+                        {can_cancel && (
                             <Button
                                 variant="destructive"
                                 className="mt-6 w-full"

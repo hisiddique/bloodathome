@@ -4,7 +4,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { MessageThread, MessageInput, type Message } from '@/components/chat';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -15,8 +15,9 @@ const CHAT_POLLING_INTERVAL = 5000; // 5 seconds
 
 interface ChatMessage {
     id: string;
-    content: string;
-    is_from_patient: boolean;
+    message: string;
+    sender_type: 'patient' | 'provider';
+    sender_id: string;
     created_at: string;
     read_at: string | null;
 }
@@ -24,10 +25,10 @@ interface ChatMessage {
 interface ChatShowProps {
     conversation: {
         id: string;
-        phlebotomist_id: string;
+        booking_id: string;
+        provider_id: string;
         phlebotomist_name: string;
         phlebotomist_image: string | null;
-        booking_id: string;
     };
     messages?: ChatMessage[];
 }
@@ -62,8 +63,8 @@ export default function ChatShow({ conversation, messages = [] }: ChatShowProps)
 
     const threadMessages: Message[] = messages.map((message) => ({
         id: message.id,
-        content: message.content,
-        is_from_current_user: message.is_from_patient,
+        content: message.message,
+        is_from_current_user: message.sender_type === 'patient',
         created_at: message.created_at,
         read_at: message.read_at,
     }));
@@ -76,23 +77,11 @@ export default function ChatShow({ conversation, messages = [] }: ChatShowProps)
                 <Card className="mb-4">
                     <CardHeader className="pb-3">
                         <div className="flex items-center gap-3">
-                            <Avatar className="size-12">
-                                <AvatarImage
-                                    src={
-                                        conversation.phlebotomist_image ||
-                                        '/placeholder.svg'
-                                    }
-                                    alt={conversation.phlebotomist_name}
-                                />
-                                <AvatarFallback>
-                                    {conversation.phlebotomist_name
-                                        .split(' ')
-                                        .map((n) => n[0])
-                                        .join('')
-                                        .toUpperCase()
-                                        .slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                                name={conversation.phlebotomist_name}
+                                imageUrl={conversation.phlebotomist_image}
+                                className="size-12"
+                            />
                             <div>
                                 <CardTitle className="text-lg">
                                     {conversation.phlebotomist_name}
@@ -111,7 +100,7 @@ export default function ChatShow({ conversation, messages = [] }: ChatShowProps)
                         className="flex-1"
                     />
                     <MessageInput
-                        action={`/chat/${conversation.id}/messages`}
+                        action={`/chat/${conversation.booking_id}`}
                     />
                 </Card>
             </div>

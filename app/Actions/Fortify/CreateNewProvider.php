@@ -37,7 +37,7 @@ class CreateNewProvider
             'address_line2' => ['nullable', 'string', 'max:255'],
             'town_city' => ['required', 'string', 'max:100'],
             'postcode' => ['required', 'string', 'max:10'],
-            'experience_years' => ['required', 'integer', 'min:0'],
+            'experience_years' => ['nullable', 'integer', 'min:0'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'provider_type_id' => ['required', 'exists:provider_types,id'],
         ])->validate();
@@ -56,7 +56,7 @@ class CreateNewProvider
             $user->assignRole('provider');
 
             // Get the pending status
-            $pendingStatus = ProviderStatus::where('name', 'Pending')->first();
+            $pendingStatus = ProviderStatus::where('name', 'Pending')->firstOrFail();
 
             // Create the provider profile
             Provider::create([

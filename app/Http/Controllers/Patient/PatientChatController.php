@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Patient\PatientChatMessageRequest;
 use App\Models\Booking;
 use App\Models\ChatConversation;
+use App\Models\ChatMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,7 +35,34 @@ class PatientChatController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->limit(1)
             )
-            ->get();
+            ->get()
+            ->map(function (ChatConversation $conversation) use ($user) {
+                $providerUser = $conversation->provider?->user;
+                $latestMessage = $conversation->latestMessage;
+
+                $unreadCount = $conversation->messages()
+                    ->where('sender_id', '!=', $user->id)
+                    ->whereNull('read_at')
+                    ->count();
+
+                return [
+                    'id' => $conversation->id,
+                    'booking_id' => $conversation->booking_id,
+                    'provider_id' => $conversation->provider_id,
+                    'phlebotomist_name' => $providerUser?->full_name ?? 'Unknown Provider',
+                    'phlebotomist_image' => null,
+                    'last_message' => $latestMessage ? [
+                        'content' => $latestMessage->message,
+                        'created_at' => $latestMessage->created_at->toISOString(),
+                        'is_from_patient' => $latestMessage->sender_type === 'patient',
+                    ] : [
+                        'content' => '',
+                        'created_at' => $conversation->created_at->toISOString(),
+                        'is_from_patient' => false,
+                    ],
+                    'unread_count' => $unreadCount,
+                ];
+            });
 
         return Inertia::render('patient/chat/index', [
             'conversations' => $conversations,
@@ -65,7 +93,6 @@ class PatientChatController extends Controller
         }
 
         $messages = $conversation->messages()
-            ->with(['sender'])
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -74,10 +101,24 @@ class PatientChatController extends Controller
             ->whereNull('read_at')
             ->update(['is_read' => true, 'read_at' => now()]);
 
+        $providerUser = $conversation->provider?->user;
+
         return Inertia::render('patient/chat/show', [
-            'conversation' => $conversation,
-            'booking' => $booking->load(['status', 'collectionType']),
-            'messages' => $messages,
+            'conversation' => [
+                'id' => $conversation->id,
+                'booking_id' => $conversation->booking_id,
+                'provider_id' => $conversation->provider_id,
+                'phlebotomist_name' => $providerUser?->full_name ?? 'Unknown Provider',
+                'phlebotomist_image' => null,
+            ],
+            'messages' => $messages->map(fn (ChatMessage $message) => [
+                'id' => $message->id,
+                'message' => $message->message,
+                'sender_type' => $message->sender_type,
+                'sender_id' => $message->sender_id,
+                'created_at' => $message->created_at->toISOString(),
+                'read_at' => $message->read_at?->toISOString(),
+            ]),
         ]);
     }
 

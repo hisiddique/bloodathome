@@ -49,8 +49,13 @@ class BookingFactory extends Factory
             null,
         ];
 
-        $grandTotal = fake()->randomFloat(2, 50.00, 300.00);
+        $subtotal = fake()->randomFloat(2, 50.00, 300.00);
+        $serviceFeePercent = 5.00;
+        $vatPercent = 20.00;
+        $serviceFeeAmount = round($subtotal * ($serviceFeePercent / 100), 2);
+        $vatAmount = round(($subtotal + $serviceFeeAmount) * ($vatPercent / 100), 2);
         $discountAmount = fake()->optional(0.3)->randomFloat(2, 5.00, 50.00) ?? 0;
+        $grandTotal = round($subtotal + $serviceFeeAmount + $vatAmount - $discountAmount, 2);
 
         return [
             'user_id' => User::factory(),
@@ -65,6 +70,11 @@ class BookingFactory extends Factory
             'service_address_line2' => fake()->optional(0.3)->secondaryAddress(),
             'service_town_city' => fake()->city(),
             'service_postcode' => fake()->regexify('[A-Z]{1,2}[0-9]{1,2} [0-9][A-Z]{2}'),
+            'subtotal_amount' => $subtotal,
+            'service_fee_percent' => $serviceFeePercent,
+            'service_fee_amount' => $serviceFeeAmount,
+            'vat_percent' => $vatPercent,
+            'vat_amount' => $vatAmount,
             'grand_total_cost' => $grandTotal,
             'discount_amount' => $discountAmount,
             'promo_code_id' => $discountAmount > 0 ? PromoCode::inRandomOrder()->first()?->id : null,

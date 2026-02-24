@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('booking_id')->constrained('bookings')->cascadeOnDelete();
-            $table->foreignId('method_id')->constrained('payment_methods');
+            $table->string('payment_method', 50)->default('card');
             $table->decimal('amount', 10, 2);
             $table->string('transaction_ref', 100)->unique();
             $table->string('stripe_payment_intent_id', 255)->unique();

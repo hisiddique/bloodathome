@@ -33,7 +33,14 @@ class ProviderRegistrationController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')
-            ->with('status', 'Your application has been submitted and is pending review.');
+        return redirect()->route('phlebotomist.register.complete');
+    }
+
+    /**
+     * Display the registration complete / pending review page.
+     */
+    public function complete(): Response
+    {
+        return Inertia::render('auth/provider-register-complete');
     }
 }

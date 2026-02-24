@@ -1,4 +1,6 @@
 import { Head } from '@inertiajs/react';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 import PublicLayout from '@/layouts/public-layout';
 import { BookingProvider, useBooking } from '@/contexts/booking-context';
 import { BookingSidebar } from '@/components/book/booking-sidebar';
@@ -22,7 +24,15 @@ interface Dependent {
 }
 
 interface BookPageProps extends PageProps {
-    userData?: { name: string; email: string; phone?: string };
+    userData?: {
+        name: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        phone?: string;
+        date_of_birth?: string;
+        nhs_number?: string;
+    };
     userAddresses?: UserAddress[];
     userPaymentMethods?: UserPaymentMethod[];
     userDependents?: Dependent[];
@@ -30,6 +40,14 @@ interface BookPageProps extends PageProps {
 
 function BookingSteps({ pageProps }: { pageProps: BookPageProps }) {
     const { step, goToStep } = useBooking();
+
+    useEffect(() => {
+        const expired = sessionStorage.getItem('booking_draft_expired');
+        if (expired) {
+            sessionStorage.removeItem('booking_draft_expired');
+            toast.info('Your previous booking draft expired. Please start fresh.');
+        }
+    }, []);
 
     const renderStep = () => {
         switch (step) {

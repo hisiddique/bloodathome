@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, CreditCard, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { StepBackLink } from './step-back-link';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBooking } from '@/contexts/booking-context';
-import { useBookingApi } from '@/hooks/use-booking-api';
+import { useBookingApi, BookingApiError } from '@/hooks/use-booking-api';
 import { usePage } from '@inertiajs/react';
 import { StripePaymentForm } from './stripe-payment-form';
 import { type UserPaymentMethod, type PageProps } from '@/types';
@@ -32,13 +32,17 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
         paymentIntentClientSecret,
         promoCode,
         discount,
+        totalAmount,
         setDraftId,
         setPaymentIntentClientSecret,
+        setTotalAmount,
         setPromoCode,
         setDiscount,
         setStep,
         goBack,
         setConfirmationNumber,
+        clearBooking,
+        isNhsTest,
     } = useBooking();
 
     const { createDraft, createPaymentIntent, applyPromoCode, confirmBooking } = useBookingApi();
@@ -52,8 +56,7 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [isCreatingIntent, setIsCreatingIntent] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
-    const [draftCreationAttempted, setDraftCreationAttempted] = useState(false);
-    const [paymentAmount, setPaymentAmount] = useState<number>(0);
+    const draftCreationRef = useRef(false);
 
     // Pre-select default payment method
     useEffect(() => {
@@ -71,18 +74,25 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
         const canCreateDraft = selectedDate && location && patientDetails && selectedSlot && selectedProvider && selectedServices.length > 0;
         const isReady = isAuthenticated || patientDetails?.isGuest;
 
-        if (!draftCreationAttempted && canCreateDraft && isReady) {
+        if (!draftCreationRef.current && canCreateDraft && isReady) {
             if (!draftId) {
                 // No draft yet — create draft + payment intent
-                setDraftCreationAttempted(true);
-                handleCreateDraft();
+                draftCreationRef.current = true;
+                handleCreateDraft().catch(() => {
+                    draftCreationRef.current = false;
+                });
             } else if (!paymentIntentClientSecret) {
                 // Draft exists but payment intent lost (e.g., page reload) — re-create it
-                setDraftCreationAttempted(true);
-                handleCreatePaymentIntent(draftId);
+                draftCreationRef.current = true;
+                handleCreatePaymentIntent(draftId).catch(() => {
+                    draftCreationRef.current = false;
+                });
+            } else {
+                // Both draft and payment intent exist — mark as attempted to prevent re-runs
+                draftCreationRef.current = true;
             }
         }
-    }, [draftCreationAttempted, draftId, paymentIntentClientSecret, selectedDate, location, patientDetails, selectedSlot, selectedProvider, selectedServices, isAuthenticated]);
+    }, [draftId, paymentIntentClientSecret, selectedDate, location, patientDetails, selectedSlot, selectedProvider, selectedServices, isAuthenticated]);
 
     const handleCreateDraft = async () => {
         if (!selectedDate || !location || !patientDetails || !selectedSlot || !selectedProvider || selectedServices.length === 0) return;
@@ -90,7 +100,8 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
         try {
             const draftData: any = {
                 collection_type: collectionType || 'home_visit',
-                is_nhs_test: false,
+                is_nhs_test: isNhsTest,
+                is_guest_booking: !isAuthenticated,
                 service_ids: (bookedServices.length > 0 ? bookedServices : selectedServices).map((s) => s.id),
                 location: {
                     postcode: location.postcode,
@@ -124,12 +135,19 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
                 draftData.service_postcode = location.postcode;
             }
 
-            // Add guest fields if not authenticated (derive from patient details)
-            if (!isAuthenticated && patientDetails.isGuest) {
+            // Add guest fields for guest bookings
+            if (!isAuthenticated) {
                 draftData.guest_name = `${patientDetails.firstName} ${patientDetails.lastName}`;
                 draftData.guest_email = patientDetails.email;
                 draftData.guest_phone = patientDetails.phone;
             }
+
+            console.log('[DEBUG] Draft data being sent:', {
+                is_nhs_test: draftData.is_nhs_test,
+                nhs_number: draftData.patient_details?.nhs_number,
+                isNhsTest_context: isNhsTest,
+                patientDetails_nhsNumber: patientDetails.nhsNumber,
+            });
 
             const draft = await createDraft(draftData);
 
@@ -138,8 +156,13 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
             // Create payment intent
             await handleCreatePaymentIntent(draft.id);
         } catch (error: any) {
-            console.error('Error creating draft:', error);
+            console.error('[DEBUG] Draft creation error:', error);
             toast.error(error?.message || 'Failed to prepare payment. Please try again.');
+            if (error instanceof BookingApiError && error.errorCode === 'DRAFT_EXPIRED') {
+                clearBooking();
+            } else {
+                setStep('patient');
+            }
         }
     };
 
@@ -149,10 +172,13 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
             const { clientSecret, amount } = await createPaymentIntent(currentDraftId);
             setPaymentIntentClientSecret(clientSecret);
             // Amount is in pence, convert to pounds
-            setPaymentAmount(amount / 100);
+            setTotalAmount(amount / 100);
         } catch (error: any) {
             console.error('Error creating payment intent:', error);
             toast.error(error?.message || 'Failed to initialize payment. Please try again.');
+            if (error instanceof BookingApiError && error.errorCode === 'DRAFT_EXPIRED') {
+                clearBooking();
+            }
         } finally {
             setIsCreatingIntent(false);
         }
@@ -184,18 +210,32 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
         }
 
         setIsConfirming(true);
-        try {
-            const result = await confirmBooking(paymentIntentId, draftId);
-            if (result.confirmationNumber) {
-                setConfirmationNumber(result.confirmationNumber);
+        const maxRetries = 3;
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const result = await confirmBooking(paymentIntentId, draftId);
+                if (result.confirmationNumber) {
+                    setConfirmationNumber(result.confirmationNumber);
+                }
+                setStep('success');
+                return;
+            } catch (error: any) {
+                lastError = error;
+                console.error(`Confirm booking attempt ${attempt}/${maxRetries} failed:`, error?.message);
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                }
             }
-            setStep('success');
-        } catch (error) {
-            console.error('Error confirming booking:', error);
-            toast.error('Payment succeeded but booking confirmation failed. Please contact support.');
-        } finally {
-            setIsConfirming(false);
         }
+
+        console.error('Error confirming booking after retries:', lastError);
+        toast.error(
+            'Payment succeeded but booking confirmation failed. Please contact support with your payment reference.',
+            { duration: 15000 }
+        );
+        setIsConfirming(false);
     };
 
     const handlePaymentError = (error: string) => {
@@ -204,7 +244,7 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
     };
 
     // Use payment amount from backend (already includes fees, VAT, discounts)
-    const finalTotal = paymentAmount;
+    const finalTotal = totalAmount;
 
     if (isCreatingIntent) {
         return (
@@ -374,17 +414,17 @@ export function StepPayment({ stripePublicKey, userPaymentMethods = [] }: StepPa
 
             {/* Actions (for saved payment methods) */}
             {!useNewCard && userPaymentMethods.length > 0 && (
-                <div className="pt-4">
+                <div className="pt-4 space-y-3">
+                    <p className="text-sm text-muted-foreground text-center">
+                        Saved card payments coming soon. Please use a new card for now.
+                    </p>
                     <Button
-                        onClick={() => {
-                            // Handle saved payment method flow
-                            toast.info('Saved payment method flow not yet implemented');
-                        }}
-                        disabled={!termsAccepted || !selectedPaymentMethodId || isConfirming}
+                        onClick={() => setUseNewCard(true)}
+                        variant="outline"
                         className="w-full py-6 text-base"
                         size="lg"
                     >
-                        {isConfirming ? 'Processing...' : `Pay £${finalTotal.toFixed(2)}`}
+                        Enter Card Details
                     </Button>
                 </div>
             )}

@@ -78,10 +78,25 @@ class CreateBookingDraftRequest extends FormRequest
             $location = $this->input('location');
             if (is_array($location)) {
                 $data['service_postcode'] = $location['postcode'] ?? null;
-                $data['service_address_line1'] = $location['address'] ?? null;
-                $data['service_town_city'] = $location['city'] ?? null;
+                // Prefer explicit address_line1 over the formatted 'address' field
+                $data['service_address_line1'] = $location['address_line1'] ?? $location['address'] ?? null;
                 $data['service_address_line2'] = $location['address_line2'] ?? null;
+                $data['service_town_city'] = $location['city'] ?? null;
             }
+        }
+
+        // Top-level service_address_* fields take precedence over location-derived ones
+        if ($this->has('service_address_line1') && ! empty($this->input('service_address_line1'))) {
+            $data['service_address_line1'] = $this->input('service_address_line1');
+        }
+        if ($this->has('service_address_line2')) {
+            $data['service_address_line2'] = $this->input('service_address_line2');
+        }
+        if ($this->has('service_town_city') && ! empty($this->input('service_town_city'))) {
+            $data['service_town_city'] = $this->input('service_town_city');
+        }
+        if ($this->has('service_postcode') && ! empty($this->input('service_postcode'))) {
+            $data['service_postcode'] = $this->input('service_postcode');
         }
 
         // Use selected_date as scheduled_date
@@ -114,7 +129,16 @@ class CreateBookingDraftRequest extends FormRequest
     {
         $isGuest = ! auth()->check();
 
+        \Illuminate\Support\Facades\Log::debug('[DEBUG] CreateBookingDraftRequest validation context', [
+            'is_nhs_test_raw' => $this->input('is_nhs_test'),
+            'is_nhs_test_boolean' => $this->boolean('is_nhs_test'),
+            'nhs_number' => $this->input('nhs_number'),
+            'patient_details_nhs' => $this->input('patient_details.nhs_number'),
+            'patient_id' => auth()->user()?->patient?->id,
+        ]);
+
         return [
+            'is_guest_booking' => ['nullable', 'boolean'],
             'provider_id' => ['required', 'string', 'exists:providers,id'],
             'collection_type' => ['required', 'string', 'in:home_visit,clinic,Home Visit,Clinic'],
             'collection_type_id' => ['required', 'integer', 'exists:collection_types,id'],
@@ -127,7 +151,14 @@ class CreateBookingDraftRequest extends FormRequest
             'service_items' => ['required', 'array', 'min:1'],
             'service_items.*' => ['required', 'string', 'exists:services,id'],
             'is_nhs_test' => ['nullable', 'boolean'],
-            'nhs_number' => ['nullable', 'string', 'max:20'],
+            'nhs_number' => [
+                $this->boolean('is_nhs_test') ? 'required' : 'nullable',
+                'string',
+                'size:10',
+                'regex:/^\d{10}$/',
+                \Illuminate\Validation\Rule::unique('patients', 'nhs_number')
+                    ->ignore(auth()->user()?->patient?->id),
+            ],
             'location' => ['nullable', 'array'],
             'location.postcode' => ['required_if:collection_type,home_visit,Home Visit', 'nullable', 'string', 'max:10'],
             'location.address' => ['required_if:collection_type,home_visit,Home Visit', 'nullable', 'string', 'max:255'],
@@ -177,6 +208,10 @@ class CreateBookingDraftRequest extends FormRequest
             'guest_email.required' => 'Email address is required for guest bookings.',
             'guest_email.email' => 'Please enter a valid email address.',
             'guest_phone.required' => 'Phone number is required for guest bookings.',
+            'nhs_number.required' => 'NHS number is required for NHS tests.',
+            'nhs_number.size' => 'NHS number must be exactly 10 digits.',
+            'nhs_number.regex' => 'NHS number must contain only digits.',
+            'nhs_number.unique' => 'This NHS number is already registered to another patient.',
         ];
     }
 }

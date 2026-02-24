@@ -34,19 +34,17 @@ export default function Register({ redirect }: RegisterProps) {
                         resetOnSuccess={['password', 'password_confirmation']}
                         className="space-y-5"
                         onSuccess={() => {
-                            toast.success("Account created!", {
-                                description: "Welcome to BloodAtHome",
-                            });
-                            // Redirect to intended URL after successful registration
-                            if (redirectUrl && redirectUrl !== '/dashboard') {
-                                router.visit(redirectUrl);
-                            }
+                            // Registration now redirects to OTP verification page
                         }}
                     >
                         {({ processing, errors }) => (
                             <>
                                 {/* Hidden field for redirect URL */}
                                 <input type="hidden" name="redirect" value={redirectUrl} />
+                                {/* Honeypot field - invisible to real users */}
+                                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                                    <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label htmlFor="first_name" className="block text-sm font-medium text-foreground mb-2">
@@ -191,7 +189,7 @@ export default function Register({ redirect }: RegisterProps) {
                                 </div>
 
                                 <p className="text-center text-muted-foreground">
-                                    Are you a phlebotomist?{" "}
+                                    Are you a provider?{" "}
                                     <Link href="/become-phlebotomist" className="text-primary font-semibold">
                                         Join our network
                                     </Link>

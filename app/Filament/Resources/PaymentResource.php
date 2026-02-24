@@ -34,9 +34,8 @@ class PaymentResource extends Resource
                             ->searchable()
                             ->required()
                             ->disabled(),
-                        Forms\Components\Select::make('method_id')
-                            ->relationship('method', 'name')
-                            ->required()
+                        Forms\Components\TextInput::make('payment_method')
+                            ->label('Payment Method')
                             ->disabled(),
                         Forms\Components\TextInput::make('amount')
                             ->required()
@@ -121,11 +120,11 @@ class PaymentResource extends Resource
                     ->relationship('status', 'name')
                     ->multiple()
                     ->preload(),
-                Tables\Filters\SelectFilter::make('method_id')
+                Tables\Filters\SelectFilter::make('payment_method')
                     ->label('Payment Method')
-                    ->relationship('method', 'name')
-                    ->multiple()
-                    ->preload(),
+                    ->options([
+                        'card' => 'Card',
+                    ]),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')

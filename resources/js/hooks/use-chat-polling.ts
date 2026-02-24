@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import { router } from '@inertiajs/react';
 
 export interface ChatMessage {
@@ -41,17 +42,11 @@ export function useChatPolling({
                     ? `/patient/chat/${bookingId}/messages`
                     : `/provider/chat/${bookingId}/messages`;
 
-            const response = await fetch(endpoint, {
-                headers: {
-                    Accept: 'application/json',
-                },
+            const response = await axios.get(endpoint, {
+                headers: { Accept: 'application/json' },
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch messages');
-            }
-
-            const data = await response.json();
+            const data = response.data;
             setMessages(data.messages || data);
             setError(null);
         } catch (err) {

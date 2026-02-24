@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
             // Status and type lookup tables
             BookingStatusSeeder::class,
             PaymentStatusSeeder::class,
-            PaymentMethodSeeder::class,
             SettlementStatusSeeder::class,
             VerificationStatusSeeder::class,
             ProviderTypeSeeder::class,

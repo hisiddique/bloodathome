@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Provider;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,48 +13,68 @@ class ProviderEarningsController extends Controller
     {
         $provider = auth()->user()->provider;
 
-        $year = $request->input('year', now()->year);
-        $month = $request->input('month');
+        $period = $request->input('period', 'all');
 
         $earningsQuery = $provider->settlements()
-            ->with(['booking.status', 'status'])
-            ->whereYear('created_at', $year);
+            ->with([
+                'booking.user',
+                'booking.items.service',
+                'status',
+            ]);
 
-        if ($month) {
-            $earningsQuery->whereMonth('created_at', $month);
+        if ($period === 'month') {
+            $earningsQuery->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year);
+        } elseif ($period === 'week') {
+            $earningsQuery->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
         }
 
-        $earnings = $earningsQuery
+        $settlements = $earningsQuery
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        $totalEarnings = $earningsQuery->sum('provider_payout_amount');
-        $totalCommission = $earningsQuery->sum('commission_amount');
-        $totalCollected = $earningsQuery->sum('collected_amount');
+        $earnings = $settlements->getCollection()->map(function ($settlement) {
+            $booking = $settlement->booking;
+            $user = $booking?->user;
+            $patientName = $user?->full_name ?? $booking?->guest_name ?? 'Unknown';
+            $firstItem = $booking?->items?->first();
+            $serviceName = $firstItem?->service?->name ?? 'Blood Test';
 
-        $monthlyBreakdown = $provider->settlements()
-            ->whereYear('created_at', $year)
-            ->select(
-                DB::raw('MONTH(created_at) as month'),
-                DB::raw('SUM(provider_payout_amount) as total_payout'),
-                DB::raw('SUM(commission_amount) as total_commission'),
-                DB::raw('COUNT(*) as booking_count')
-            )
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->orderBy('month')
-            ->get();
+            return [
+                'id' => $settlement->id,
+                'booking_id' => $settlement->booking_id,
+                'patient_name' => $patientName,
+                'service' => $serviceName,
+                'amount' => (float) $settlement->provider_payout_amount,
+                'date' => $settlement->created_at->toDateString(),
+                'status' => strtolower($settlement->status?->name ?? 'pending'),
+            ];
+        });
+
+        $allSettlements = $provider->settlements();
+
+        $summary = [
+            'total_earnings' => (float) $allSettlements->sum('provider_payout_amount'),
+            'this_month' => (float) $provider->settlements()
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('provider_payout_amount'),
+            'this_week' => (float) $provider->settlements()
+                ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+                ->sum('provider_payout_amount'),
+            'pending' => (float) $provider->settlements()
+                ->whereHas('status', fn ($q) => $q->where('name', 'Pending'))
+                ->sum('provider_payout_amount'),
+            'completed_bookings' => $provider->settlements()
+                ->whereHas('status', fn ($q) => $q->whereIn('name', ['Paid', 'Processing']))
+                ->count(),
+        ];
 
         return Inertia::render('provider/earnings/index', [
             'earnings' => $earnings,
-            'summary' => [
-                'total_earnings' => $totalEarnings,
-                'total_commission' => $totalCommission,
-                'total_collected' => $totalCollected,
-            ],
-            'monthlyBreakdown' => $monthlyBreakdown,
+            'summary' => $summary,
             'filters' => [
-                'year' => $year,
-                'month' => $month,
+                'period' => $period,
             ],
         ]);
     }

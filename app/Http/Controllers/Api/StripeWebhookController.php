@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingStatus;
 use App\Models\Payment;
-use App\Models\PaymentMethod;
 use App\Models\PaymentStatus;
 use App\Models\SystemSetting;
 use Illuminate\Http\JsonResponse;
@@ -140,11 +139,6 @@ class StripeWebhookController extends Controller
                 throw new \RuntimeException('Completed payment status not found');
             }
 
-            $cardPaymentMethod = PaymentMethod::where('name', 'Card')->first();
-            if (! $cardPaymentMethod) {
-                throw new \RuntimeException('Card payment method not found');
-            }
-
             $chargeId = null;
             $cardBrand = null;
             $cardLastFour = null;
@@ -161,7 +155,7 @@ class StripeWebhookController extends Controller
 
             Payment::create([
                 'booking_id' => $booking->id,
-                'method_id' => $cardPaymentMethod->id,
+                'payment_method' => 'card',
                 'amount' => $paymentIntent->amount / 100,
                 'transaction_ref' => $paymentIntentId,
                 'stripe_payment_intent_id' => $paymentIntentId,

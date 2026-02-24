@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('patients', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('user_id')->unique()->constrained('users')->cascadeOnDelete();
-            $table->date('date_of_birth')->nullable();
+            $table->date('date_of_birth');
             $table->string('address_line1', 255)->nullable();
             $table->string('address_line2', 255)->nullable();
             $table->string('town_city', 100)->nullable();

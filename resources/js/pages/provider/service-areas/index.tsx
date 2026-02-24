@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -25,13 +24,13 @@ import { useState } from 'react';
 
 interface ServiceArea {
     id: string;
-    postcode: string;
-    city: string;
-    is_active: boolean;
+    postcode_prefix: string;
+    max_distance_miles: string | null;
+    additional_travel_fee: string | null;
 }
 
 interface ProviderServiceAreasIndexProps {
-    service_areas: ServiceArea[];
+    serviceAreas: ServiceArea[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -46,13 +45,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function ProviderServiceAreasIndex({
-    service_areas = [],
+    serviceAreas = [],
 }: ProviderServiceAreasIndexProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const { data, setData, post, processing, reset, errors } = useForm({
-        postcode: '',
-        city: '',
+        postcode_prefix: '',
+        max_distance_miles: '',
+        additional_travel_fee: '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -90,7 +90,7 @@ export default function ProviderServiceAreasIndex({
                     </Button>
                 </div>
 
-                {service_areas.length === 0 ? (
+                {serviceAreas.length === 0 ? (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12">
                             <MapPin className="mb-4 h-12 w-12 text-muted-foreground" />
@@ -106,15 +106,15 @@ export default function ProviderServiceAreasIndex({
                 ) : (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Active Service Areas</CardTitle>
+                            <CardTitle>Service Areas</CardTitle>
                             <CardDescription>
-                                {service_areas.length} area
-                                {service_areas.length !== 1 ? 's' : ''} covered
+                                {serviceAreas.length} area
+                                {serviceAreas.length !== 1 ? 's' : ''} covered
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {service_areas.map((area) => (
+                                {serviceAreas.map((area) => (
                                     <div
                                         key={area.id}
                                         className="flex items-center justify-between rounded-lg border p-4"
@@ -123,32 +123,29 @@ export default function ProviderServiceAreasIndex({
                                             <MapPin className="h-5 w-5 text-primary" />
                                             <div>
                                                 <div className="font-semibold">
-                                                    {area.postcode}
+                                                    {area.postcode_prefix}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground">
-                                                    {area.city}
+                                                    {area.max_distance_miles
+                                                        ? `Up to ${area.max_distance_miles} miles`
+                                                        : 'No distance limit'}
                                                 </div>
+                                                {area.additional_travel_fee && parseFloat(area.additional_travel_fee) > 0 && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Travel fee: £{parseFloat(area.additional_travel_fee).toFixed(2)}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {area.is_active && (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="text-green-600"
-                                                >
-                                                    Active
-                                                </Badge>
-                                            )}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    handleDelete(area.id)
-                                                }
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() =>
+                                                handleDelete(area.id)
+                                            }
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
@@ -161,47 +158,74 @@ export default function ProviderServiceAreasIndex({
                         <DialogHeader>
                             <DialogTitle>Add Service Area</DialogTitle>
                             <DialogDescription>
-                                Add a new postcode area where you provide
-                                services
+                                Add a postcode prefix area where you provide services
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit}>
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="postcode">
-                                        Postcode / Area Code
+                                    <Label htmlFor="postcode_prefix">
+                                        Postcode Prefix
                                     </Label>
                                     <Input
-                                        id="postcode"
-                                        value={data.postcode}
+                                        id="postcode_prefix"
+                                        value={data.postcode_prefix}
                                         onChange={(e) =>
                                             setData(
-                                                'postcode',
+                                                'postcode_prefix',
                                                 e.target.value.toUpperCase(),
                                             )
                                         }
-                                        placeholder="e.g., SW1A 1AA or SW1A"
+                                        placeholder="e.g., SW1A or SW"
+                                        maxLength={10}
                                     />
-                                    {errors.postcode && (
+                                    {errors.postcode_prefix && (
                                         <p className="mt-1 text-sm text-destructive">
-                                            {errors.postcode}
+                                            {errors.postcode_prefix}
                                         </p>
                                     )}
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="city">City / Town</Label>
+                                    <Label htmlFor="max_distance_miles">
+                                        Max Distance (miles, optional)
+                                    </Label>
                                     <Input
-                                        id="city"
-                                        value={data.city}
+                                        id="max_distance_miles"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={data.max_distance_miles}
                                         onChange={(e) =>
-                                            setData('city', e.target.value)
+                                            setData('max_distance_miles', e.target.value)
                                         }
-                                        placeholder="e.g., London"
+                                        placeholder="e.g., 10"
                                     />
-                                    {errors.city && (
+                                    {errors.max_distance_miles && (
                                         <p className="mt-1 text-sm text-destructive">
-                                            {errors.city}
+                                            {errors.max_distance_miles}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="additional_travel_fee">
+                                        Additional Travel Fee (£, optional)
+                                    </Label>
+                                    <Input
+                                        id="additional_travel_fee"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={data.additional_travel_fee}
+                                        onChange={(e) =>
+                                            setData('additional_travel_fee', e.target.value)
+                                        }
+                                        placeholder="0.00"
+                                    />
+                                    {errors.additional_travel_fee && (
+                                        <p className="mt-1 text-sm text-destructive">
+                                            {errors.additional_travel_fee}
                                         </p>
                                     )}
                                 </div>

@@ -30,10 +30,10 @@ interface Dependent {
     date_of_birth: string;
     age: number;
     relationship: string;
-    nhs_number?: string;
-    allergies?: string;
-    medical_conditions?: string;
-    medications?: string;
+    nhs_number: string | null;
+    allergies: string | null;
+    medical_conditions: string | null;
+    medications: string | null;
 }
 
 interface DependentsProps {
@@ -129,11 +129,13 @@ export default function Dependents({ dependents = [] }: DependentsProps) {
                                     <div className="space-y-2 text-sm">
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <CalendarDays className="size-4" />
-                                            <span>Born {new Date(dependent.date_of_birth).toLocaleDateString('en-GB', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            })}</span>
+                                            <span>Born {dependent.date_of_birth
+                                                ? new Date(dependent.date_of_birth + 'T00:00:00').toLocaleDateString('en-GB', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                })
+                                                : '—'}</span>
                                         </div>
                                         {dependent.nhs_number && (
                                             <p className="text-muted-foreground">

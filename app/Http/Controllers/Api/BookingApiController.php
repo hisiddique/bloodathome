@@ -11,6 +11,7 @@ use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\BookingStatus;
 use App\Models\CollectionType;
+use App\Models\Patient;
 use App\Models\Provider;
 use App\Models\ProviderService;
 use App\Models\Service;
@@ -236,6 +237,8 @@ class BookingApiController extends Controller
             // For guest bookings, require guest details
             if ($isGuest) {
                 if (empty($validated['guest_email']) || empty($validated['guest_name']) || empty($validated['guest_phone'])) {
+                    DB::rollBack();
+
                     return response()->json([
                         'success' => false,
                         'message' => 'Guest name, email, and phone are required.',
@@ -254,17 +257,21 @@ class BookingApiController extends Controller
                 ->get();
 
             if ($providerServices->count() !== count($validated['service_items'])) {
+                DB::rollBack();
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Some selected services are not available from this provider.',
                 ], 422);
             }
 
-            $totalCost = $providerServices->sum('base_cost');
+            $subtotal = $providerServices->sum('base_cost');
+            $pricing = Booking::calculatePricing((float) $subtotal);
 
             $pendingStatus = BookingStatus::pending();
             if (! $pendingStatus) {
-                throw new \RuntimeException('Pending booking status not found.');
+                Log::critical('BookingStatus "Pending" record missing - run: php artisan db:seed --class=BookingStatusSeeder');
+                throw new \RuntimeException('System configuration error. Please contact support.');
             }
 
             $bookingData = [
@@ -279,7 +286,7 @@ class BookingApiController extends Controller
                 'service_address_line2' => $validated['service_address_line2'] ?? null,
                 'service_town_city' => $validated['service_town_city'] ?? null,
                 'service_postcode' => $validated['service_postcode'] ?? null,
-                'grand_total_cost' => $totalCost,
+                ...$pricing,
                 'visit_instructions' => $validated['visit_instructions'] ?? null,
                 'patient_notes' => $validated['patient_notes'] ?? null,
                 'draft_token' => Str::uuid()->toString(),
@@ -314,7 +321,8 @@ class BookingApiController extends Controller
                 'is_guest' => $isGuest,
                 'guest_email' => $isGuest ? $validated['guest_email'] : null,
                 'provider_id' => $provider->id,
-                'total_cost' => $totalCost,
+                'subtotal' => $pricing['subtotal_amount'],
+                'grand_total' => $pricing['grand_total_cost'],
             ]);
 
             return response()->json([
@@ -326,6 +334,13 @@ class BookingApiController extends Controller
                     'total_cost' => (float) $booking->grand_total_cost,
                 ],
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Provider not found.',
+            ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -368,6 +383,7 @@ class BookingApiController extends Controller
             if ($booking->draft_expires_at && $booking->draft_expires_at->isPast()) {
                 return response()->json([
                     'success' => false,
+                    'error_code' => 'DRAFT_EXPIRED',
                     'message' => 'This booking draft has expired. Please create a new booking.',
                 ], 422);
             }
@@ -385,13 +401,16 @@ class BookingApiController extends Controller
                 ->get();
 
             if ($providerServices->count() !== count($validated['service_items'])) {
+                DB::rollBack();
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Some selected services are not available from this provider.',
                 ], 422);
             }
 
-            $totalCost = $providerServices->sum('base_cost');
+            $subtotal = $providerServices->sum('base_cost');
+            $pricing = Booking::calculatePricing((float) $subtotal);
 
             $booking->update([
                 'provider_id' => $provider->id,
@@ -403,7 +422,7 @@ class BookingApiController extends Controller
                 'service_address_line2' => $validated['service_address_line2'] ?? null,
                 'service_town_city' => $validated['service_town_city'] ?? null,
                 'service_postcode' => $validated['service_postcode'] ?? null,
-                'grand_total_cost' => $totalCost,
+                ...$pricing,
                 'visit_instructions' => $validated['visit_instructions'] ?? null,
                 'patient_notes' => $validated['patient_notes'] ?? null,
                 'draft_expires_at' => now()->addMinutes(30),
@@ -427,7 +446,8 @@ class BookingApiController extends Controller
                 'booking_id' => $booking->id,
                 'user_id' => auth()->id(),
                 'provider_id' => $provider->id,
-                'total_cost' => $totalCost,
+                'subtotal' => $pricing['subtotal_amount'],
+                'grand_total' => $pricing['grand_total_cost'],
             ]);
 
             return response()->json([
@@ -439,6 +459,13 @@ class BookingApiController extends Controller
                     'total_cost' => (float) $booking->grand_total_cost,
                 ],
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Provider not found.',
+            ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -478,6 +505,7 @@ class BookingApiController extends Controller
             if ($booking->draft_expires_at && $booking->draft_expires_at->isPast()) {
                 return response()->json([
                     'success' => false,
+                    'error_code' => 'DRAFT_EXPIRED',
                     'message' => 'Booking draft has expired. Please create a new booking.',
                 ], 422);
             }
@@ -490,7 +518,7 @@ class BookingApiController extends Controller
                 ], 422);
             }
 
-            $amountInPence = (int) ($booking->grand_total_cost * 100);
+            $amountInPence = (int) round($booking->grand_total_cost * 100);
 
             $metadata = [
                 'booking_id' => $booking->id,
@@ -526,6 +554,11 @@ class BookingApiController extends Controller
                     'currency' => 'gbp',
                 ],
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found or access denied.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('Failed to create payment intent', [
                 'error' => $e->getMessage(),
@@ -574,15 +607,51 @@ class BookingApiController extends Controller
             $booking = $query->firstOrFail();
 
             if ($booking->stripe_payment_intent_id !== $validated['payment_intent_id']) {
+                DB::rollBack();
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment intent does not match booking.',
                 ], 422);
             }
 
+            // Idempotency: if already confirmed, return success without re-processing
+            $confirmedStatus = BookingStatus::confirmed();
+            if ($confirmedStatus && $booking->status_id === $confirmedStatus->id) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'confirmation_number' => $booking->confirmation_number,
+                        'booking' => [
+                            'id' => $booking->id,
+                            'status' => 'Confirmed',
+                        ],
+                    ],
+                ]);
+            }
+
             $paymentIntent = $this->stripeService->confirmPayment($validated['payment_intent_id']);
 
+            if ($paymentIntent->status === 'processing') {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment is still processing. Please wait a moment and try again.',
+                    'status' => 'processing',
+                ], 202);
+            }
+
             if ($paymentIntent->status !== 'succeeded') {
+                DB::rollBack();
+
+                Log::warning('Payment not completed', [
+                    'payment_intent_id' => $validated['payment_intent_id'],
+                    'status' => $paymentIntent->status,
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment has not been completed successfully.',
@@ -591,7 +660,8 @@ class BookingApiController extends Controller
 
             $confirmedStatus = BookingStatus::confirmed();
             if (! $confirmedStatus) {
-                throw new \RuntimeException('Confirmed booking status not found.');
+                Log::critical('BookingStatus "Confirmed" record missing - run: php artisan db:seed --class=BookingStatusSeeder');
+                throw new \RuntimeException('System configuration error. Please contact support.');
             }
 
             $confirmationNumber = $booking->confirmation_number ?? Booking::generateConfirmationNumber();
@@ -601,7 +671,23 @@ class BookingApiController extends Controller
                 'confirmation_number' => $confirmationNumber,
                 'draft_token' => null,
                 'draft_expires_at' => null,
+                'consented_at' => now(),
+                'consent_version' => 'v1',
             ]);
+
+            // Auto-save NHS number to the patient profile if not already set
+            if (auth()->check() && ! empty($booking->nhs_number)) {
+                $patient = auth()->user()->patient;
+                if ($patient && $patient->nhs_number === null) {
+                    $exists = Patient::where('nhs_number', $booking->nhs_number)
+                        ->where('id', '!=', $patient->id)
+                        ->exists();
+
+                    if (! $exists) {
+                        $patient->update(['nhs_number' => $booking->nhs_number]);
+                    }
+                }
+            }
 
             DB::commit();
 
@@ -632,10 +718,23 @@ class BookingApiController extends Controller
                                 'cost' => (float) $item->item_cost,
                             ];
                         }),
+                        'subtotal_amount' => (float) $booking->subtotal_amount,
+                        'service_fee_percent' => (float) $booking->service_fee_percent,
+                        'service_fee_amount' => (float) $booking->service_fee_amount,
+                        'vat_percent' => (float) $booking->vat_percent,
+                        'vat_amount' => (float) $booking->vat_amount,
+                        'discount_amount' => (float) $booking->discount_amount,
                         'total_cost' => (float) $booking->grand_total_cost,
                     ],
                 ],
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found or access denied.',
+            ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -664,14 +763,111 @@ class BookingApiController extends Controller
             'postcode' => ['required', 'string', 'max:10'],
         ]);
 
-        $address = $request->user()->addresses()->create($validated);
+        try {
+            $address = $request->user()->addresses()->create($validated);
 
-        Log::info('Address saved during booking', [
-            'user_id' => $request->user()->id,
-            'address_id' => $address->id,
-            'label' => $validated['label'],
+            Log::info('Address saved during booking', [
+                'user_id' => $request->user()->id,
+                'address_id' => $address->id,
+                'label' => $validated['label'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['address' => $address],
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Failed to save address', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save address. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new dependent for the authenticated user.
+     */
+    public function storeDependent(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'date_of_birth' => ['required', 'date', 'before:today'],
+            'relationship' => ['required', 'in:child,spouse,parent,other'],
+            'nhs_number' => ['nullable', 'string', 'max:10'],
         ]);
 
-        return response()->json($address, 201);
+        try {
+            $dependent = $request->user()->dependents()->create($validated);
+
+            return response()->json([
+                'success' => true,
+                'dependent' => [
+                    'id' => $dependent->id,
+                    'first_name' => $dependent->first_name,
+                    'last_name' => $dependent->last_name,
+                    'full_name' => $dependent->full_name,
+                    'date_of_birth' => $dependent->date_of_birth->format('Y-m-d'),
+                    'relationship' => $dependent->relationship,
+                    'nhs_number' => $dependent->nhs_number,
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Failed to store dependent', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add dependent. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Save NHS number for the authenticated user's patient profile.
+     */
+    public function saveNhsNumber(Request $request): JsonResponse
+    {
+        $patient = $request->user()->patient;
+
+        if (! $patient) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Patient profile not found. Please complete your registration.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'nhs_number' => ['required', 'string', 'size:10', 'regex:/^\d{10}$/', 'unique:patients,nhs_number,'.$patient->id],
+        ]);
+
+        $patient->update(['nhs_number' => $validated['nhs_number']]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Save NHS number for a dependent.
+     */
+    public function saveDependentNhsNumber(Request $request, \App\Models\Dependent $dependent): JsonResponse
+    {
+        if ($dependent->user_id !== $request->user()->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $validated = $request->validate([
+            'nhs_number' => ['required', 'string', 'size:10', 'regex:/^\d{10}$/'],
+        ]);
+
+        $dependent->update(['nhs_number' => $validated['nhs_number']]);
+
+        return response()->json(['success' => true]);
     }
 }

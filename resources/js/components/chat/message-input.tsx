@@ -28,7 +28,7 @@ export function MessageInput({
                 {({ processing }) => (
                     <div className="flex gap-2">
                         <Input
-                            name="content"
+                            name="message"
                             placeholder={placeholder}
                             required
                             disabled={processing || disabled}

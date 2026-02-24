@@ -24,7 +24,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useState } from 'react';
 
 interface Earning {
@@ -45,9 +45,14 @@ interface EarningsSummary {
     completed_bookings: number;
 }
 
+interface Filters {
+    period: string;
+}
+
 interface ProviderEarningsIndexProps {
     earnings: Earning[];
     summary: EarningsSummary;
+    filters: Filters;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -64,8 +69,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function ProviderEarningsIndex({
     earnings = [],
     summary,
+    filters,
 }: ProviderEarningsIndexProps) {
-    const [period, setPeriod] = useState('all');
+    const [period, setPeriod] = useState(filters?.period ?? 'all');
 
     const handlePeriodChange = (value: string) => {
         setPeriod(value);
@@ -202,10 +208,9 @@ export default function ProviderEarningsIndex({
                                     {earnings.map((earning) => (
                                         <TableRow key={earning.id}>
                                             <TableCell>
-                                                {format(
-                                                    new Date(earning.date),
-                                                    'MMM d, yyyy',
-                                                )}
+                                                {earning.date
+                                                    ? format(parseISO(earning.date), 'MMM d, yyyy')
+                                                    : '—'}
                                             </TableCell>
                                             <TableCell className="font-medium">
                                                 {earning.patient_name}
@@ -214,7 +219,7 @@ export default function ProviderEarningsIndex({
                                                 {earning.service}
                                             </TableCell>
                                             <TableCell className="font-semibold">
-                                                £{earning.amount.toFixed(2)}
+                                                £{Number(earning.amount).toFixed(2)}
                                             </TableCell>
                                             <TableCell>
                                                 <span

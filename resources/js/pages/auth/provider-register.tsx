@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Link, router, Head, useForm } from "@inertiajs/react";
-import { User, Mail, Phone, MapPin, FileText, CheckCircle, Building2 } from "lucide-react";
+import { Link, Head, useForm } from "@inertiajs/react";
+import { User, Mail, Phone, MapPin, FileText, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import InputError from "@/components/input-error";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -20,8 +19,6 @@ interface Props {
 }
 
 export default function ProviderRegister({ providerTypes }: Props) {
-    const [isComplete, setIsComplete] = useState(false);
-
     const { data, setData, post, processing, errors } = useForm({
         first_name: "",
         last_name: "",
@@ -42,9 +39,6 @@ export default function ProviderRegister({ providerTypes }: Props) {
         e.preventDefault();
 
         post(store(), {
-            onSuccess: () => {
-                setIsComplete(true);
-            },
             onError: () => {
                 toast.error("Registration failed", {
                     description: "Please check the form for errors",
@@ -53,50 +47,20 @@ export default function ProviderRegister({ providerTypes }: Props) {
         });
     };
 
-    if (isComplete) {
-        return (
-            <>
-                <Head title="Registration Complete" />
-
-                <div className="min-h-[calc(100vh-theme(spacing.16))] flex flex-col items-center justify-center px-6">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                        <CheckCircle className="w-12 h-12 text-green-600" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-foreground mb-2 text-center">
-                        Registration Complete!
-                    </h1>
-                    <p className="text-muted-foreground text-center mb-8 max-w-md">
-                        Thank you for registering as a phlebotomist. Your application is now under review.
-                        Our team will verify your details and get back to you within 2-3 business days.
-                    </p>
-                    <Button onClick={() => router.visit("/dashboard")}>
-                        Go to Dashboard
-                    </Button>
-                    <button
-                        onClick={() => router.visit("/")}
-                        className="mt-4 text-primary font-medium"
-                    >
-                        Back to Home
-                    </button>
-                </div>
-            </>
-        );
-    }
-
     return (
         <>
-            <Head title="Become a Mobile Phlebotomist" />
+            <Head title="Become a Mobile Provider" />
 
             <div className="min-h-[calc(100vh-theme(spacing.16))] py-12 px-4">
                 <div className="max-w-2xl mx-auto">
                     <h1 className="text-2xl font-bold text-foreground mb-6 text-center">
-                        Become a Mobile Phlebotomist
+                        Become a Mobile Provider
                     </h1>
 
                     <div className="bg-accent/50 rounded-2xl p-4 mb-8">
                         <h2 className="font-semibold text-foreground mb-2">Join Our Network</h2>
                         <p className="text-sm text-muted-foreground">
-                            Working as a mobile phlebotomist is a great way to earn extra money
+                            Working as a mobile provider is a great way to earn extra money
                             alongside your main role. You can accept appointments that suit your
                             availability, giving you full control over when and how often you work.
                             We require all applicants to have strong clinical experience, a current

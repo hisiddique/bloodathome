@@ -27,6 +27,11 @@ return new class extends Migration
             $table->string('service_town_city', 100)->nullable();
             $table->string('service_postcode', 10)->nullable();
             $table->decimal('grand_total_cost', 10, 2);
+            $table->decimal('subtotal_amount', 10, 2)->default(0);
+            $table->decimal('service_fee_percent', 5, 2)->default(0);
+            $table->decimal('service_fee_amount', 10, 2)->default(0);
+            $table->decimal('vat_percent', 5, 2)->default(0);
+            $table->decimal('vat_amount', 10, 2)->default(0);
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->foreignUlid('promo_code_id')->nullable()->constrained('promo_codes');
             $table->string('stripe_payment_intent_id', 255)->nullable()->unique();
@@ -42,6 +47,9 @@ return new class extends Migration
             $table->string('guest_name', 255)->nullable();
             $table->string('guest_phone', 50)->nullable();
             $table->boolean('is_guest_booking')->default(false);
+
+            $table->timestamp('consented_at')->nullable();
+            $table->string('consent_version', 10)->nullable();
 
             $table->timestamps();
             $table->softDeletes();

@@ -28,19 +28,21 @@ interface ChatMessage {
 
 interface Booking {
     id: string;
+    confirmation_number: string | null;
     patient_id: string;
     patient_name: string;
-    patient_avatar?: string;
+    patient_avatar?: string | null;
+}
+
+interface Conversation {
+    id: string;
+    booking_id: string;
 }
 
 interface ProviderChatShowProps {
     booking: Booking;
+    conversation: Conversation;
     messages: ChatMessage[];
-    auth: {
-        user: {
-            id: string;
-        };
-    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -60,8 +62,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function ProviderChatShow({
     booking,
+    conversation,
     messages = [],
-    auth,
 }: ProviderChatShowProps) {
     const { data, setData, post, processing, reset } = useForm({
         message: '',
@@ -120,7 +122,7 @@ export default function ProviderChatShow({
                                     {booking.patient_name}
                                 </CardTitle>
                                 <CardDescription>
-                                    Booking #{booking.id}
+                                    Ref: {booking.confirmation_number ?? booking.id}
                                 </CardDescription>
                             </div>
                         </div>

@@ -16,21 +16,10 @@ Route::get('collection-types', [BookingApiController::class, 'getCollectionTypes
 Route::post('providers/search', [BookingApiController::class, 'searchProviders']);
 Route::get('providers/{provider}/availability', [BookingApiController::class, 'getProviderAvailability']);
 
-// Booking draft creation (public - supports both auth and guest)
-Route::post('booking-drafts', [BookingApiController::class, 'createDraft']);
+// Booking draft, payment-intent, and confirm routes are in web.php
+// for session-based auth detection (Inertia uses web middleware)
 
-// Payment endpoints (public - supports both auth and guest, rate limited)
-Route::middleware('throttle:10,1')->group(function () {
-    Route::post('booking-drafts/payment-intent', [BookingApiController::class, 'createPaymentIntent']);
-    Route::post('bookings/confirm', [BookingApiController::class, 'confirmBooking']);
-});
-
-// Authenticated booking endpoints
-Route::middleware('auth')->group(function () {
-    Route::patch('booking-drafts/{booking}', [BookingApiController::class, 'updateDraft']);
-    Route::post('booking-drafts/{booking}/promo-code', [BookingApiController::class, 'applyPromoCode']);
-    Route::post('addresses', [BookingApiController::class, 'saveAddress']);
-});
+// Authenticated booking endpoints moved to web.php for session-based auth
 
 // Booking API v1 (backward compatibility - aliases to above routes)
 Route::prefix('v1/booking')->group(function () {

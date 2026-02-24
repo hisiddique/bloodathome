@@ -6,30 +6,56 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { format } from 'date-fns';
-import { Calendar, Clock, MapPin, CreditCard, Heart } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Calendar, Clock, CreditCard, Heart, MapPin } from 'lucide-react';
+
+interface BookingStatus {
+    id: number;
+    name: string;
+}
+
+interface BookingProvider {
+    id: string;
+    user?: {
+        full_name?: string;
+        profile_photo_url?: string | null;
+    };
+}
 
 interface Booking {
     id: string;
-    phlebotomist_name: string;
-    phlebotomist_image: string | null;
-    appointment_date: string;
-    time_slot: string;
-    address: string;
-    status: string;
+    scheduled_date: string;
+    time_slot: string | null;
+    service_address_line1: string | null;
+    service_address_line2: string | null;
+    service_town_city: string | null;
+    service_postcode: string | null;
+    status: BookingStatus | null;
+    provider: BookingProvider | null;
+}
+
+interface RecentBooking {
+    id: string;
+    scheduled_date: string;
+    status: BookingStatus | null;
+    provider: BookingProvider | null;
+}
+
+interface PendingReview {
+    id: string;
+    scheduled_date: string;
+    provider: BookingProvider | null;
 }
 
 interface DashboardProps {
     upcomingBookings?: Booking[];
-    recentActivity?: Array<{
-        id: string;
-        type: string;
-        message: string;
-        date: string;
-    }>;
+    recentBookings?: RecentBooking[];
+    pendingReviews?: PendingReview[];
+    totalBookings?: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -39,9 +65,36 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+function formatBookingAddress(booking: Booking): string {
+    const parts = [
+        booking.service_address_line1,
+        booking.service_address_line2,
+        booking.service_town_city,
+        booking.service_postcode,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(', ') : 'Address not provided';
+}
+
+function formatScheduledDate(dateString: string | null | undefined): string {
+    if (!dateString) {
+        return 'Date not set';
+    }
+
+    try {
+        // scheduled_date is cast as 'date' in Laravel, so it arrives as a date string (YYYY-MM-DD)
+        const date = parseISO(dateString);
+        return format(date, 'MMM d, yyyy');
+    } catch {
+        return 'Invalid date';
+    }
+}
+
 export default function PatientDashboard({
     upcomingBookings = [],
-    recentActivity = [],
+    recentBookings = [],
+    pendingReviews = [],
+    totalBookings = 0,
 }: DashboardProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -75,18 +128,18 @@ export default function PatientDashboard({
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">0</div>
+                            <div className="text-2xl font-bold">{totalBookings}</div>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-sm font-medium">
-                                Saved Addresses
+                                Pending Reviews
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">0</div>
+                            <div className="text-2xl font-bold">{pendingReviews.length}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -114,42 +167,44 @@ export default function PatientDashboard({
                                             key={booking.id}
                                             className="flex items-start gap-3 rounded-lg border p-3"
                                         >
-                                            <img
-                                                src={
-                                                    booking.phlebotomist_image ||
-                                                    '/placeholder.svg'
+                                            <UserAvatar
+                                                name={
+                                                    booking.provider?.user?.full_name ||
+                                                    'Provider'
                                                 }
-                                                alt={booking.phlebotomist_name}
-                                                className="size-12 rounded-full object-cover"
+                                                imageUrl={
+                                                    booking.provider?.user?.profile_photo_url
+                                                }
+                                                className="size-12"
                                             />
                                             <div className="flex-1">
                                                 <p className="font-medium">
-                                                    {booking.phlebotomist_name}
+                                                    {booking.provider?.user?.full_name ||
+                                                        'Provider not assigned'}
                                                 </p>
                                                 <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="size-3" />
-                                                        {format(
-                                                            new Date(
-                                                                booking.appointment_date,
-                                                            ),
-                                                            'MMM d, yyyy',
+                                                        {formatScheduledDate(
+                                                            booking.scheduled_date,
                                                         )}
                                                     </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="size-3" />
-                                                        {booking.time_slot}
-                                                    </span>
+                                                    {booking.time_slot && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock className="size-3" />
+                                                            {booking.time_slot}
+                                                        </span>
+                                                    )}
                                                     <span className="flex items-center gap-1">
                                                         <MapPin className="size-3" />
-                                                        {booking.address}
+                                                        {formatBookingAddress(booking)}
                                                     </span>
                                                 </div>
                                                 <Badge
                                                     variant="secondary"
                                                     className="mt-2"
                                                 >
-                                                    {booking.status}
+                                                    {booking.status?.name ?? 'Unknown'}
                                                 </Badge>
                                             </div>
                                         </div>
@@ -167,34 +222,37 @@ export default function PatientDashboard({
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent Activity</CardTitle>
+                            <CardTitle>Recent Bookings</CardTitle>
                             <CardDescription>
-                                Your recent account activity
+                                Your recently completed appointments
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {recentActivity.length === 0 ? (
+                            {recentBookings.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-center">
                                     <p className="text-sm text-muted-foreground">
-                                        No recent activity
+                                        No recent bookings
                                     </p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {recentActivity.map((activity) => (
+                                    {recentBookings.map((booking) => (
                                         <div
-                                            key={activity.id}
+                                            key={booking.id}
                                             className="border-b pb-3 last:border-0"
                                         >
-                                            <p className="text-sm">
-                                                {activity.message}
+                                            <p className="text-sm font-medium">
+                                                {booking.provider?.user?.full_name ||
+                                                    'Provider not assigned'}
                                             </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {format(
-                                                    new Date(activity.date),
-                                                    'MMM d, yyyy h:mm a',
-                                                )}
-                                            </p>
+                                            <div className="mt-1 flex items-center justify-between">
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatScheduledDate(booking.scheduled_date)}
+                                                </p>
+                                                <Badge variant="secondary">
+                                                    {booking.status?.name ?? 'Unknown'}
+                                                </Badge>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

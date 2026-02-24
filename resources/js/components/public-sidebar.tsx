@@ -2,6 +2,7 @@ import { Link, usePage } from "@inertiajs/react";
 import { Stethoscope, HelpCircle, CalendarCheck, Home, LayoutDashboard, LogOut, Calendar } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn, isSameUrl } from "@/lib/utils";
+import AppLogo from "./app-logo";
 import type { PageProps } from "@/types";
 
 interface PublicSidebarProps {
@@ -24,7 +25,7 @@ export function PublicSidebar({ open, onOpenChange }: PublicSidebarProps) {
   const guestNavItems = [
     { href: '/', icon: Home, label: 'Home' },
     { href: '/book', icon: Calendar, label: 'Book Now' },
-    { href: '/become-phlebotomist', icon: Stethoscope, label: 'Become a Mobile Phlebotomist' },
+    { href: '/become-phlebotomist', icon: Stethoscope, label: 'Become a Provider' },
     { href: '/faq', icon: HelpCircle, label: 'FAQ' },
   ];
 
@@ -34,7 +35,7 @@ export function PublicSidebar({ open, onOpenChange }: PublicSidebarProps) {
     { href: '/book', icon: Calendar, label: 'Book Now' },
     { href: getDashboardUrl(), icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/bookings', icon: CalendarCheck, label: 'My Bookings' },
-    { href: '/become-phlebotomist', icon: Stethoscope, label: 'Become a Mobile Phlebotomist' },
+    { href: '/become-phlebotomist', icon: Stethoscope, label: 'Become a Provider' },
     { href: '/faq', icon: HelpCircle, label: 'FAQ' },
   ];
 
@@ -45,28 +46,12 @@ export function PublicSidebar({ open, onOpenChange }: PublicSidebarProps) {
       <SheetContent side="left" className="w-72 p-0 bg-background border-r border-border">
         <SheetHeader className="p-4 border-b border-border">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <Link href="/" onClick={() => onOpenChange(false)}>
+            <AppLogo />
+          </Link>
         </SheetHeader>
 
-        {isAuthenticated ? (
-          /* Authenticated User Header */
-          <div className="p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">
-                  {auth.user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {auth.user?.name || 'User'}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {auth.user?.email}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
+        {!isAuthenticated && (
           /* Guest Actions */
           <div className="p-4 space-y-3">
             <Link
@@ -113,33 +98,44 @@ export function PublicSidebar({ open, onOpenChange }: PublicSidebarProps) {
           </nav>
         </div>
 
-        {/* Logout for authenticated users */}
-        {isAuthenticated && (
-          <div className="border-t border-border">
-            <Link
-              href="/logout"
-              method="post"
-              as="button"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-3 px-4 py-3 w-full text-left text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="font-medium">Log out</span>
-            </Link>
-          </div>
-        )}
-
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">HB</span>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shrink-0">
+                <span className="text-primary-foreground font-bold text-sm">
+                  {auth.user?.initials || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {auth.user?.full_name || 'User'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {auth.user?.email}
+                </p>
+              </div>
+              <Link
+                href="/logout"
+                method="post"
+                as="button"
+                onClick={() => onOpenChange(false)}
+                className="shrink-0 p-2 text-destructive hover:bg-destructive/10 transition-colors rounded-md"
+              >
+                <LogOut className="h-5 w-5" />
+              </Link>
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">There's more to love</p>
-              <p className="text-xs text-muted-foreground">in the app.</p>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">HB</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">There's more to love</p>
+                <p className="text-xs text-muted-foreground">in the app.</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

@@ -19,18 +19,40 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Calendar, Clock, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useState } from 'react';
+
+interface BookingStatus {
+    id: number;
+    name: string;
+    description?: string;
+}
+
+interface BookingItem {
+    id: string;
+    service?: {
+        id: string;
+        name: string;
+    };
+}
 
 interface Booking {
     id: string;
-    patient_name: string;
-    appointment_date: string;
-    time_slot: string;
-    address: string;
-    status: string;
-    service: string;
-    price: number;
+    confirmation_number: string | null;
+    scheduled_date: string;
+    time_slot: string | null;
+    service_address_line1: string | null;
+    service_address_line2: string | null;
+    service_town_city: string | null;
+    service_postcode: string | null;
+    grand_total_cost: string | number;
+    status: BookingStatus | null;
+    user: {
+        full_name: string;
+        email: string;
+        phone?: string | null;
+    } | null;
+    items: BookingItem[];
 }
 
 interface PaginatedBookings {
@@ -63,11 +85,36 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const statusColors: Record<string, string> = {
+    Pending: 'secondary',
     pending: 'secondary',
+    Confirmed: 'default',
     confirmed: 'default',
+    Completed: 'outline',
     completed: 'outline',
+    Cancelled: 'destructive',
     cancelled: 'destructive',
 };
+
+function formatAddress(booking: Booking): string {
+    return [
+        booking.service_address_line1,
+        booking.service_address_line2,
+        booking.service_town_city,
+        booking.service_postcode,
+    ]
+        .filter(Boolean)
+        .join(', ');
+}
+
+function getServiceNames(booking: Booking): string {
+    if (!booking.items?.length) {
+        return '—';
+    }
+    return booking.items
+        .map((item) => item.service?.name ?? '—')
+        .filter(Boolean)
+        .join(', ');
+}
 
 export default function ProviderBookingsIndex({
     bookings,
@@ -115,14 +162,14 @@ export default function ProviderBookingsIndex({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Bookings</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="confirmed">
+                                <SelectItem value="Pending">Pending</SelectItem>
+                                <SelectItem value="Confirmed">
                                     Confirmed
                                 </SelectItem>
-                                <SelectItem value="completed">
+                                <SelectItem value="Completed">
                                     Completed
                                 </SelectItem>
-                                <SelectItem value="cancelled">
+                                <SelectItem value="Cancelled">
                                     Cancelled
                                 </SelectItem>
                             </SelectContent>
@@ -154,62 +201,65 @@ export default function ProviderBookingsIndex({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {bookings.data.map((booking) => (
-                                        <TableRow key={booking.id}>
-                                            <TableCell className="font-medium">
-                                                {booking.patient_name}
-                                            </TableCell>
-                                            <TableCell>
-                                                {booking.service}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="h-3 w-3" />
-                                                    {format(
-                                                        new Date(
-                                                            booking.appointment_date,
-                                                        ),
-                                                        'MMM d, yyyy',
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    {booking.time_slot}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="max-w-[200px] truncate">
-                                                {booking.address}
-                                            </TableCell>
-                                            <TableCell>
-                                                £{booking.price.toFixed(2)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        statusColors[
-                                                            booking.status
-                                                        ] as any
-                                                    }
-                                                >
-                                                    {booking.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Link
-                                                    href={`/bookings/${booking.id}`}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
+                                    {bookings.data.map((booking) => {
+                                        const statusName = booking.status?.name ?? '—';
+                                        const price = Number(booking.grand_total_cost ?? 0);
+
+                                        return (
+                                            <TableRow key={booking.id}>
+                                                <TableCell className="font-medium">
+                                                    {booking.user?.full_name ?? '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {getServiceNames(booking)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1">
+                                                        <Calendar className="h-3 w-3" />
+                                                        {booking.scheduled_date
+                                                            ? format(
+                                                                  parseISO(booking.scheduled_date),
+                                                                  'MMM d, yyyy',
+                                                              )
+                                                            : '—'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {booking.time_slot ?? '—'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="max-w-[200px] truncate">
+                                                    {formatAddress(booking) || '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    £{price.toFixed(2)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={
+                                                            statusColors[statusName] as any
+                                                        }
                                                     >
-                                                        View
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                                        {statusName}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Link
+                                                        href={`/bookings/${booking.id}`}
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            View
+                                                        </Button>
+                                                    </Link>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
 

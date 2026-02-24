@@ -121,6 +121,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
                     if (now - savedAt > DRAFT_EXPIRY_MS) {
                         // Draft expired, clear it
                         localStorage.removeItem(BOOKING_STORAGE_KEY);
+                        sessionStorage.setItem('booking_draft_expired', 'true');
                         setIsInitialized(true);
                         return;
                     }

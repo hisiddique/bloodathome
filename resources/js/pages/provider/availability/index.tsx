@@ -6,7 +6,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
 import {
     Select,
     SelectContent,
@@ -14,23 +13,36 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { format } from 'date-fns';
 
-interface TimeSlot {
+interface RecurringAvailability {
     id: string;
     day_of_week: number;
     start_time: string;
     end_time: string;
+    is_available: boolean;
+    specific_date: null;
+}
+
+interface SpecificDateAvailability {
+    id: string;
+    specific_date: string;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+    day_of_week: null;
 }
 
 interface ProviderAvailabilityIndexProps {
-    time_slots: TimeSlot[];
+    recurringAvailability: RecurringAvailability[];
+    specificDateAvailability: SpecificDateAvailability[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -72,16 +84,18 @@ const timeOptions = [
     '20:00',
 ];
 
+type SlotMode = 'recurring' | 'specific';
+
 export default function ProviderAvailabilityIndex({
-    time_slots = [],
+    recurringAvailability = [],
+    specificDateAvailability = [],
 }: ProviderAvailabilityIndexProps) {
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-        new Date(),
-    );
     const [isAddingSlot, setIsAddingSlot] = useState(false);
+    const [slotMode, setSlotMode] = useState<SlotMode>('recurring');
 
     const { data, setData, post, processing, reset, errors } = useForm({
         day_of_week: '',
+        specific_date: '',
         start_time: '',
         end_time: '',
     });
@@ -102,7 +116,7 @@ export default function ProviderAvailabilityIndex({
         }
     };
 
-    const slotsByDay = time_slots.reduce(
+    const slotsByDay = recurringAvailability.reduce(
         (acc, slot) => {
             if (!acc[slot.day_of_week]) {
                 acc[slot.day_of_week] = [];
@@ -110,7 +124,7 @@ export default function ProviderAvailabilityIndex({
             acc[slot.day_of_week].push(slot);
             return acc;
         },
-        {} as Record<number, TimeSlot[]>,
+        {} as Record<number, RecurringAvailability[]>,
     );
 
     return (
@@ -137,7 +151,7 @@ export default function ProviderAvailabilityIndex({
                         <CardHeader>
                             <CardTitle>Add New Time Slot</CardTitle>
                             <CardDescription>
-                                Set your availability for a specific day
+                                Set your availability for a recurring day or a specific date
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -145,35 +159,84 @@ export default function ProviderAvailabilityIndex({
                                 onSubmit={handleAddSlot}
                                 className="space-y-4"
                             >
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        variant={slotMode === 'recurring' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => {
+                                            setSlotMode('recurring');
+                                            setData('specific_date', '');
+                                        }}
+                                    >
+                                        Recurring
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={slotMode === 'specific' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => {
+                                            setSlotMode('specific');
+                                            setData('day_of_week', '');
+                                        }}
+                                    >
+                                        Specific Date
+                                    </Button>
+                                </div>
+
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">
-                                            Day of Week
-                                        </label>
-                                        <Select
-                                            value={data.day_of_week}
-                                            onValueChange={(value) =>
-                                                setData('day_of_week', value)
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select day" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {daysOfWeek.map((day) => (
-                                                    <SelectItem
-                                                        key={day.value}
-                                                        value={day.value.toString()}
-                                                    >
-                                                        {day.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {errors.day_of_week && (
-                                            <p className="mt-1 text-sm text-destructive">
-                                                {errors.day_of_week}
-                                            </p>
+                                        {slotMode === 'recurring' ? (
+                                            <>
+                                                <label className="mb-2 block text-sm font-medium">
+                                                    Day of Week
+                                                </label>
+                                                <Select
+                                                    value={data.day_of_week}
+                                                    onValueChange={(value) =>
+                                                        setData('day_of_week', value)
+                                                    }
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select day" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {daysOfWeek.map((day) => (
+                                                            <SelectItem
+                                                                key={day.value}
+                                                                value={day.value.toString()}
+                                                            >
+                                                                {day.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.day_of_week && (
+                                                    <p className="mt-1 text-sm text-destructive">
+                                                        {errors.day_of_week}
+                                                    </p>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Label htmlFor="specific_date">
+                                                    Specific Date
+                                                </Label>
+                                                <Input
+                                                    id="specific_date"
+                                                    type="date"
+                                                    value={data.specific_date}
+                                                    onChange={(e) =>
+                                                        setData('specific_date', e.target.value)
+                                                    }
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                />
+                                                {errors.specific_date && (
+                                                    <p className="mt-1 text-sm text-destructive">
+                                                        {errors.specific_date}
+                                                    </p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
 
@@ -304,6 +367,50 @@ export default function ProviderAvailabilityIndex({
                         </Card>
                     ))}
                 </div>
+
+                {specificDateAvailability.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Specific Date Slots</CardTitle>
+                            <CardDescription>
+                                One-off availability for particular dates
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {specificDateAvailability.map((slot) => (
+                                <div
+                                    key={slot.id}
+                                    className="flex items-center justify-between rounded-lg border p-3"
+                                >
+                                    <div className="text-sm">
+                                        <div className="font-medium">
+                                            {slot.specific_date}
+                                        </div>
+                                        <div className="text-muted-foreground">
+                                            {slot.start_time} – {slot.end_time}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge
+                                            variant="outline"
+                                            className={slot.is_available ? 'text-green-600' : 'text-muted-foreground'}
+                                        >
+                                            {slot.is_available ? 'Available' : 'Unavailable'}
+                                        </Badge>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleDeleteSlot(slot.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </AppLayout>
     );

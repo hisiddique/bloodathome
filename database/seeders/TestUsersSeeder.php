@@ -27,7 +27,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Admin',
                 'last_name' => 'User',
-                'date_of_birth' => '1980-01-01',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -41,7 +40,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Sarah',
                 'last_name' => 'Johnson',
-                'date_of_birth' => '1988-05-15',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -76,7 +74,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Michael',
                 'last_name' => 'Brown',
-                'date_of_birth' => '1992-08-20',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -106,7 +103,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'John',
                 'last_name' => 'Smith',
-                'date_of_birth' => '1985-06-15',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -129,7 +125,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Emily',
                 'last_name' => 'Davis',
-                'date_of_birth' => '1990-03-22',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -362,7 +357,6 @@ class TestUsersSeeder extends Seeder
                 [
                     'first_name' => $data['first_name'],
                     'last_name' => $data['last_name'],
-                    'date_of_birth' => fake()->dateTimeBetween('-50 years', '-25 years')->format('Y-m-d'),
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                 ]
@@ -415,7 +409,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Sarah',
                 'last_name' => 'Johnson',
-                'date_of_birth' => '1990-04-10',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -479,7 +472,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Michael',
                 'last_name' => 'Chen',
-                'date_of_birth' => '1982-11-25',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -556,7 +548,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'North London',
                 'last_name' => 'Clinic',
-                'date_of_birth' => '1975-01-01',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -622,7 +613,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'Emma',
                 'last_name' => 'Williams',
-                'date_of_birth' => '1993-07-18',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -682,7 +672,6 @@ class TestUsersSeeder extends Seeder
             [
                 'first_name' => 'City',
                 'last_name' => 'Diagnostics',
-                'date_of_birth' => '1978-03-15',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]

@@ -14,7 +14,7 @@ class ProviderProfileController extends Controller
 {
     public function edit(): Response
     {
-        $provider = auth()->user()->provider->load(['type', 'status', 'qualifications']);
+        $provider = auth()->user()->provider->load(['type', 'status', 'qualifications', 'user']);
 
         return Inertia::render('provider/profile/edit', [
             'provider' => $provider,

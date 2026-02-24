@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Link } from '@inertiajs/react';
 import { format } from 'date-fns';
 
@@ -49,23 +49,11 @@ export function ConversationList({
                         <CardContent className="p-4">
                             <div className="flex items-start gap-3">
                                 <div className="relative">
-                                    <Avatar className="size-12">
-                                        <AvatarImage
-                                            src={
-                                                conversation.avatar ||
-                                                '/placeholder.svg'
-                                            }
-                                            alt={conversation.name}
-                                        />
-                                        <AvatarFallback>
-                                            {conversation.name
-                                                .split(' ')
-                                                .map((n) => n[0])
-                                                .join('')
-                                                .toUpperCase()
-                                                .slice(0, 2)}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                    <UserAvatar
+                                        name={conversation.name}
+                                        imageUrl={conversation.avatar}
+                                        className="size-12"
+                                    />
                                     {conversation.unread_count > 0 && (
                                         <Badge
                                             variant="destructive"

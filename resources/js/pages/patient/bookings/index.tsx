@@ -27,20 +27,22 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Calendar, Clock, MapPin, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 interface Booking {
     id: string;
-    phlebotomist_id: string;
-    phlebotomist_name: string;
-    phlebotomist_image: string | null;
-    appointment_date: string;
-    time_slot: string;
+    confirmation_number: string | null;
+    provider_id: string | null;
+    provider_name: string | null;
+    provider_image: string | null;
+    scheduled_date: string | null;
+    time_slot: string | null;
     address: string;
-    status: string;
-    total_amount: number;
+    status: string | null;
+    grand_total_cost: number;
 }
 
 interface PaginatedBookings {
@@ -64,7 +66,7 @@ interface BookingsProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'My Bookings',
-        href: '/books',
+        href: '/bookings',
     },
 ];
 
@@ -78,7 +80,7 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
 
     const handleFilter = () => {
         router.get(
-            '/books',
+            '/bookings',
             {
                 status: statusFilter !== 'all' ? statusFilter : undefined,
                 date_from: dateFrom || undefined,
@@ -210,7 +212,7 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Phlebotomist</TableHead>
+                                            <TableHead>Provider</TableHead>
                                             <TableHead>Date</TableHead>
                                             <TableHead>Time</TableHead>
                                             <TableHead>Address</TableHead>
@@ -224,52 +226,42 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                                             <TableRow key={booking.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
-                                                        <img
-                                                            src={
-                                                                booking.phlebotomist_image ||
-                                                                '/placeholder.svg'
-                                                            }
-                                                            alt={
-                                                                booking.phlebotomist_name
-                                                            }
-                                                            className="size-10 rounded-full object-cover"
+                                                        <UserAvatar
+                                                            name={booking.provider_name ?? 'Provider'}
+                                                            imageUrl={booking.provider_image}
+                                                            className="size-10"
                                                         />
                                                         <span className="font-medium">
-                                                            {
-                                                                booking.phlebotomist_name
-                                                            }
+                                                            {booking.provider_name ?? 'Unknown Provider'}
                                                         </span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {format(
-                                                        new Date(
-                                                            booking.appointment_date,
-                                                        ),
-                                                        'MMM d, yyyy',
-                                                    )}
+                                                    {booking.scheduled_date
+                                                        ? format(parseISO(booking.scheduled_date), 'MMM d, yyyy')
+                                                        : '—'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {booking.time_slot}
+                                                    {booking.time_slot ?? '—'}
                                                 </TableCell>
                                                 <TableCell className="max-w-[200px] truncate">
-                                                    {booking.address}
+                                                    {booking.address || '—'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    £{booking.total_amount.toFixed(2)}
+                                                    £{booking.grand_total_cost.toFixed(2)}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge
                                                         variant={getStatusBadgeVariant(
-                                                            booking.status,
+                                                            booking.status ?? '',
                                                         )}
                                                     >
-                                                        {booking.status}
+                                                        {booking.status ?? 'Unknown'}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Link
-                                                        href={`/books/${booking.id}`}
+                                                        href={`/bookings/${booking.id}`}
                                                     >
                                                         <Button
                                                             variant="outline"
@@ -324,51 +316,45 @@ export default function Bookings({ bookings, filters = {} }: BookingsProps) {
                                 <Card key={booking.id}>
                                     <CardContent className="p-4">
                                         <div className="flex items-start gap-3">
-                                            <img
-                                                src={
-                                                    booking.phlebotomist_image ||
-                                                    '/placeholder.svg'
-                                                }
-                                                alt={booking.phlebotomist_name}
-                                                className="size-14 rounded-full object-cover"
+                                            <UserAvatar
+                                                name={booking.provider_name ?? 'Provider'}
+                                                imageUrl={booking.provider_image}
+                                                className="size-14"
                                             />
                                             <div className="flex-1">
                                                 <h3 className="font-semibold">
-                                                    {booking.phlebotomist_name}
+                                                    {booking.provider_name ?? 'Unknown Provider'}
                                                 </h3>
                                                 <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="size-4" />
-                                                        {format(
-                                                            new Date(
-                                                                booking.appointment_date,
-                                                            ),
-                                                            'MMM d, yyyy',
-                                                        )}
+                                                        {booking.scheduled_date
+                                                            ? format(parseISO(booking.scheduled_date), 'MMM d, yyyy')
+                                                            : '—'}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="size-4" />
-                                                        {booking.time_slot}
+                                                        {booking.time_slot ?? '—'}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <MapPin className="size-4" />
-                                                        {booking.address}
+                                                        {booking.address || '—'}
                                                     </div>
                                                 </div>
                                                 <div className="mt-3 flex items-center justify-between">
                                                     <Badge
                                                         variant={getStatusBadgeVariant(
-                                                            booking.status,
+                                                            booking.status ?? '',
                                                         )}
                                                     >
-                                                        {booking.status}
+                                                        {booking.status ?? 'Unknown'}
                                                     </Badge>
                                                     <span className="font-semibold">
-                                                        £{booking.total_amount.toFixed(2)}
+                                                        £{booking.grand_total_cost.toFixed(2)}
                                                     </span>
                                                 </div>
                                                 <Link
-                                                    href={`/books/${booking.id}`}
+                                                    href={`/bookings/${booking.id}`}
                                                     className="mt-3 block"
                                                 >
                                                     <Button

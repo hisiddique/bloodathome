@@ -20,8 +20,11 @@ class PatientBookingController extends Controller
         $user = $request->user();
 
         $status = $request->input('status', 'all');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
         $query = $user->bookings()
-            ->with(['status', 'collectionType', 'provider.user', 'items.service', 'payment']);
+            ->with(['status', 'provider.user']);
 
         if ($status !== 'all') {
             $query->whereHas('status', function ($q) use ($status) {
@@ -29,14 +32,48 @@ class PatientBookingController extends Controller
             });
         }
 
+        if ($dateFrom) {
+            $query->whereDate('scheduled_date', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->whereDate('scheduled_date', '<=', $dateTo);
+        }
+
         $bookings = $query->orderBy('scheduled_date', 'desc')
             ->orderBy('time_slot', 'desc')
-            ->paginate(10);
+            ->paginate(10)
+            ->through(function (Booking $booking) {
+                $provider = $booking->relationLoaded('provider') ? $booking->provider : null;
+                $providerUser = $provider?->relationLoaded('user') ? $provider->user : null;
+
+                $addressParts = array_filter([
+                    $booking->service_address_line1,
+                    $booking->service_address_line2,
+                    $booking->service_town_city,
+                    $booking->service_postcode,
+                ]);
+
+                return [
+                    'id' => $booking->id,
+                    'confirmation_number' => $booking->confirmation_number,
+                    'scheduled_date' => $booking->scheduled_date?->toDateString(),
+                    'time_slot' => $booking->time_slot,
+                    'address' => implode(', ', $addressParts),
+                    'status' => $booking->status?->name,
+                    'grand_total_cost' => (float) ($booking->grand_total_cost ?? 0),
+                    'provider_id' => $provider?->id,
+                    'provider_name' => $providerUser?->full_name ?? $provider?->provider_name,
+                    'provider_image' => $providerUser?->profile_image ?? $provider?->profile_thumbnail_url,
+                ];
+            });
 
         return Inertia::render('patient/bookings/index', [
             'bookings' => $bookings,
             'filters' => [
                 'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
         ]);
     }
@@ -59,13 +96,20 @@ class PatientBookingController extends Controller
             'provider.qualifications',
             'items.service.category',
             'payment.status',
-            'consents',
             'review',
             'conversation',
         ]);
 
+        $canCancel = ! $booking->isCancelled()
+            && in_array($booking->status?->name, ['Pending', 'Confirmed']);
+
+        $canReview = $booking->status?->name === 'Completed'
+            && is_null($booking->review);
+
         return Inertia::render('patient/bookings/show', [
             'booking' => $booking,
+            'can_cancel' => $canCancel,
+            'can_review' => $canReview,
         ]);
     }
 

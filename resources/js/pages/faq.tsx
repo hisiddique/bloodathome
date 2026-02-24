@@ -9,27 +9,27 @@ import PublicLayout from "@/layouts/public-layout";
 
 const faqData = [
   {
-    question: "How do I know the phlebotomist on your website is legally registered?",
+    question: "How do I know the provider on your website is legally registered?",
     answer:
-      "We verify each phlebotomist's CQC registration before approving them on our platform.",
+      "We verify each provider's CQC registration before approving them on our platform.",
   },
   {
-    question: "Do all phlebotomists need to be registered with the CQC?",
+    question: "Do all providers need to be registered with the CQC?",
     answer:
-      "Yes. Anyone performing independent diagnostic or screening procedures — including mobile and private phlebotomists — must legally be registered with the CQC.",
+      "Yes. Anyone performing independent diagnostic or screening procedures — including mobile and private providers — must legally be registered with the CQC.",
   },
   {
-    question: "What checks do you perform before listing a phlebotomist?",
+    question: "What checks do you perform before listing a provider?",
     answer:
       "We confirm their CQC registration, validate their professional details, and ensure they comply with current legal requirements.",
   },
   {
     question: "Why is CQC registration important?",
     answer:
-      "CQC registration ensures the phlebotomist meets safety, quality, and regulatory standards for diagnostic and screening services.",
+      "CQC registration ensures the provider meets safety, quality, and regulatory standards for diagnostic and screening services.",
   },
   {
-    question: "What happens if a phlebotomist is not CQC-registered?",
+    question: "What happens if a provider is not CQC-registered?",
     answer:
       "They cannot be listed on our website or provide independent diagnostic/screening services legally.",
   },
@@ -39,15 +39,15 @@ const faqData = [
       "Yes. You can search for any provider on the official CQC website using their name or registration number.",
   },
   {
-    question: "Do you list NHS phlebotomists who also work privately?",
+    question: "Do you list NHS providers who also work privately?",
     answer:
       "Yes — but only if they are individually registered with the CQC for private diagnostic/screening procedures.",
   },
   {
     question:
-      "Are mobile home-visit phlebotomists also required to be CQC-registered?",
+      "Are mobile home-visit providers also required to be CQC-registered?",
     answer:
-      "Yes. CQC registration is required even for mobile and home-visit phlebotomists.",
+      "Yes. CQC registration is required even for mobile and home-visit providers.",
   },
   {
     question:
@@ -65,7 +65,7 @@ const faqData = [
 export default function FAQ() {
   return (
     <>
-      <Head title="FAQ - CQC Registration & Phlebotomists" />
+      <Head title="FAQ - CQC Registration & Providers" />
 
       <div className="min-h-screen bg-background pb-8">
         <div className="px-6 py-4">
@@ -74,7 +74,7 @@ export default function FAQ() {
               FAQ
             </h1>
             <h2 className="text-lg font-semibold text-primary mb-2 text-center">
-              CQC Registration & Phlebotomists
+              CQC Registration & Providers
             </h2>
             <p className="text-muted-foreground text-sm text-center">
               Common questions about our verification process and legal requirements.

@@ -119,7 +119,7 @@ const collectionOptions = [
   {
     id: "home-visit" as CollectionType,
     title: "Home Visit Blood Test",
-    description: "Mobile phlebotomist comes to your location",
+    description: "Mobile provider comes to your location",
     icon: Home,
   },
   {
@@ -592,7 +592,7 @@ export function PhlebotomistFinder({ onSearch }: PhlebotomistFinderProps) {
       <Button onClick={handleSearch} disabled={!isFormValid}>
         <span className="flex items-center justify-center gap-2">
           <Search className="w-5 h-5" />
-          Search for Phlebotomists
+          Search for Providers
         </span>
       </Button>
     </div>

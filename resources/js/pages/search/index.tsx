@@ -24,21 +24,21 @@ export default function FindPhlebotomist() {
 
   return (
     <>
-      <Head title="Find a Mobile Phlebotomist" />
+      <Head title="Find a Mobile Provider" />
 
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
         <div className="px-6 pt-8 pb-4">
           <h1 className="text-2xl font-bold text-primary text-center mb-2">
-            Find a Mobile Phlebotomist
+            Find a Mobile Provider
           </h1>
           <p className="text-muted-foreground text-center text-sm">
             Please complete this form and we will connect you with your nearest
-            mobile phlebotomists.
+            mobile providers.
           </p>
         </div>
 
-        {/* Phlebotomist Finder Form */}
+        {/* Provider Finder Form */}
         <div className="px-6 pb-8">
           <PhlebotomistFinder onSearch={handleSearch} />
         </div>

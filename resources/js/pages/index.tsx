@@ -21,7 +21,7 @@ export default function Index() {
                   <span className="block text-primary mt-2">At Your Doorstep</span>
                 </h1>
                 <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 lg:mb-8">
-                  Book a certified mobile phlebotomist for convenient, safe, and professional blood collection services.
+                  Book a certified mobile provider for convenient, safe, and professional blood collection services.
                 </p>
 
                 {/* CTA Button */}
@@ -32,7 +32,7 @@ export default function Index() {
                 >
                   <Link href="/book">
                     <Search className="w-5 h-5" />
-                    Find a Phlebotomist
+                    Find a Provider
                   </Link>
                 </Button>
               </div>
@@ -74,7 +74,7 @@ export default function Index() {
                 </div>
                 <h3 className="text-lg lg:text-xl font-semibold text-foreground mb-2">Home Visit</h3>
                 <p className="text-sm lg:text-base text-muted-foreground">
-                  Our mobile phlebotomists come directly to your home, office, or preferred location.
+                  Our mobile providers come directly to your home, office, or preferred location.
                 </p>
               </div>
 
@@ -94,7 +94,7 @@ export default function Index() {
                 </div>
                 <h3 className="text-lg lg:text-xl font-semibold text-foreground mb-2">CQC Registered</h3>
                 <p className="text-sm lg:text-base text-muted-foreground">
-                  All our phlebotomists are fully certified and registered with CQC.
+                  All our providers are fully certified and registered with CQC.
                 </p>
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function Index() {
               <div className="grid grid-cols-3 gap-6 lg:gap-12">
                 <div className="p-4 lg:p-6">
                   <p className="text-2xl lg:text-3xl xl:text-4xl font-bold text-foreground mb-2">500+</p>
-                  <p className="text-xs lg:text-sm text-muted-foreground">Certified Phlebotomists</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground">Certified Providers</p>
                 </div>
                 <div className="p-4 lg:p-6">
                   <p className="text-2xl lg:text-3xl xl:text-4xl font-bold text-foreground mb-2">50,000+</p>

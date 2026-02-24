@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -28,7 +27,7 @@ class Payment extends Model
      */
     protected $fillable = [
         'booking_id',
-        'method_id',
+        'payment_method',
         'amount',
         'transaction_ref',
         'stripe_payment_intent_id',
@@ -59,27 +58,11 @@ class Payment extends Model
     }
 
     /**
-     * Get the payment method used.
-     */
-    public function method(): BelongsTo
-    {
-        return $this->belongsTo(PaymentMethod::class, 'method_id');
-    }
-
-    /**
      * Get the payment status.
      */
     public function status(): BelongsTo
     {
         return $this->belongsTo(PaymentStatus::class, 'payment_status_id');
-    }
-
-    /**
-     * Get all tax breakdowns for this payment.
-     */
-    public function taxBreakdowns(): HasMany
-    {
-        return $this->hasMany(PaymentTaxBreakdown::class);
     }
 
     /**

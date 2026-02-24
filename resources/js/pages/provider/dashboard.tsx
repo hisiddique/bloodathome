@@ -6,14 +6,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -22,11 +14,12 @@ import { format } from 'date-fns';
 
 interface Booking {
     id: string;
+    confirmation_number: string | null;
     patient_name: string;
-    appointment_date: string;
-    time_slot: string;
+    scheduled_date: string | null;
+    time_slot: string | null;
     address: string;
-    status: string;
+    status: string | null;
     service: string;
 }
 
@@ -179,13 +172,13 @@ export default function ProviderDashboard({
                                                     </h4>
                                                     <Badge
                                                         variant={
-                                                            booking.status ===
+                                                            booking.status?.toLowerCase() ===
                                                             'confirmed'
                                                                 ? 'default'
                                                                 : 'secondary'
                                                         }
                                                     >
-                                                        {booking.status}
+                                                        {booking.status ?? 'Unknown'}
                                                     </Badge>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">
@@ -194,16 +187,18 @@ export default function ProviderDashboard({
                                                 <div className="mt-2 flex items-center gap-4 text-sm">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="h-3 w-3" />
-                                                        {format(
-                                                            new Date(
-                                                                booking.appointment_date,
-                                                            ),
-                                                            'MMM d, yyyy',
-                                                        )}
+                                                        {booking.scheduled_date
+                                                            ? format(
+                                                                  new Date(
+                                                                      booking.scheduled_date,
+                                                                  ),
+                                                                  'MMM d, yyyy',
+                                                              )
+                                                            : 'TBD'}
                                                     </span>
                                                     <span className="flex items-center gap-1">
                                                         <Clock className="h-3 w-3" />
-                                                        {booking.time_slot}
+                                                        {booking.time_slot ?? 'TBD'}
                                                     </span>
                                                 </div>
                                             </div>

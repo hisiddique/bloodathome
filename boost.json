@@ -1,6 +1,14 @@
 {
     "agents": [
-        "claude_code"
+        "claude_code",
+        "copilot"
     ],
-    "guidelines": []
+    "editors": [
+        "claude_code",
+        "vscode"
+    ],
+    "guidelines": [
+        "filament/filament",
+        "laravel/fortify"
+    ]
 }

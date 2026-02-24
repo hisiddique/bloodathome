@@ -73,6 +73,8 @@ export interface UserData {
     name: string;
     email: string;
     phone?: string;
+    date_of_birth?: string;
+    nhs_number?: string;
 }
 
 export interface ServiceCategory {
@@ -196,7 +198,7 @@ export interface PageProps {
     name: string;
     quote: { message: string; author: string };
     auth: {
-        user: User;
+        user: User | null;
         roles: string[];
         isAdmin: boolean;
         isProvider: boolean;

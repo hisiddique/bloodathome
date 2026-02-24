@@ -40,7 +40,6 @@ class Provider extends Model
         'latitude',
         'longitude',
         'location',
-        'profile_image_url',
         'profile_thumbnail_url',
         'show_image_in_search',
         'bio',
@@ -125,14 +124,6 @@ class Provider extends Model
     public function qualifications(): HasMany
     {
         return $this->hasMany(ProviderQualification::class);
-    }
-
-    /**
-     * Get all rate history for this provider.
-     */
-    public function rates(): HasMany
-    {
-        return $this->hasMany(ProviderRate::class);
     }
 
     /**

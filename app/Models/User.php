@@ -28,6 +28,15 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     use HasFactory, HasRoles, HasUlids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
+     * Disable the default magic link verification email.
+     * OTP verification is handled by EmailVerificationOtpController.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        // Do nothing — OTP is sent via CreateNewUser::sendVerificationOtp()
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -36,7 +45,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'first_name',
         'middle_name',
         'last_name',
-        'date_of_birth',
         'email',
         'phone',
         'profile_image',
@@ -102,11 +110,18 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     protected function casts(): array
     {
         return [
-            'date_of_birth' => 'date',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the date of birth from the patient profile (backward-compatibility accessor).
+     */
+    public function getDateOfBirthAttribute(): ?\Illuminate\Support\Carbon
+    {
+        return $this->patient?->date_of_birth;
     }
 
     /**

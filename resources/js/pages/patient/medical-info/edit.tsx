@@ -9,18 +9,16 @@ import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
 
-interface MedicalInfo {
-    nhs_number?: string;
-    blood_type?: string;
-    allergies?: string;
-    medical_conditions?: string;
-    medications?: string;
-    emergency_contact_name?: string;
-    emergency_contact_phone?: string;
+interface Patient {
+    nhs_number?: string | null;
+    known_blood_type?: string | null;
+    known_allergies?: string | null;
+    current_medications?: string | null;
+    medical_conditions?: string | null;
 }
 
 interface EditMedicalInfoProps {
-    medicalInfo?: MedicalInfo;
+    patient?: Patient | null;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -30,9 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function EditMedicalInfo({
-    medicalInfo,
-}: EditMedicalInfoProps) {
+export default function EditMedicalInfo({ patient }: EditMedicalInfoProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Medical Information" />
@@ -63,7 +59,7 @@ export default function EditMedicalInfo({
                                             id="nhs_number"
                                             name="nhs_number"
                                             defaultValue={
-                                                medicalInfo?.nhs_number
+                                                patient?.nhs_number ?? ''
                                             }
                                             placeholder="123 456 7890"
                                         />
@@ -73,14 +69,14 @@ export default function EditMedicalInfo({
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="blood_type">
+                                        <Label htmlFor="known_blood_type">
                                             Blood Type
                                         </Label>
                                         <select
-                                            id="blood_type"
-                                            name="blood_type"
+                                            id="known_blood_type"
+                                            name="known_blood_type"
                                             defaultValue={
-                                                medicalInfo?.blood_type
+                                                patient?.known_blood_type ?? ''
                                             }
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
@@ -95,23 +91,27 @@ export default function EditMedicalInfo({
                                             <option value="O-">O-</option>
                                         </select>
                                         <InputError
-                                            message={errors.blood_type}
+                                            message={errors.known_blood_type}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="allergies">
+                                    <Label htmlFor="known_allergies">
                                         Allergies
                                     </Label>
                                     <Textarea
-                                        id="allergies"
-                                        name="allergies"
-                                        defaultValue={medicalInfo?.allergies}
+                                        id="known_allergies"
+                                        name="known_allergies"
+                                        defaultValue={
+                                            patient?.known_allergies ?? ''
+                                        }
                                         placeholder="List any known allergies (e.g., medications, latex, etc.)"
                                         rows={3}
                                     />
-                                    <InputError message={errors.allergies} />
+                                    <InputError
+                                        message={errors.known_allergies}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
@@ -122,7 +122,7 @@ export default function EditMedicalInfo({
                                         id="medical_conditions"
                                         name="medical_conditions"
                                         defaultValue={
-                                            medicalInfo?.medical_conditions
+                                            patient?.medical_conditions ?? ''
                                         }
                                         placeholder="List any medical conditions (e.g., diabetes, hypertension, etc.)"
                                         rows={3}
@@ -133,63 +133,21 @@ export default function EditMedicalInfo({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="medications">
+                                    <Label htmlFor="current_medications">
                                         Current Medications
                                     </Label>
                                     <Textarea
-                                        id="medications"
-                                        name="medications"
-                                        defaultValue={medicalInfo?.medications}
+                                        id="current_medications"
+                                        name="current_medications"
+                                        defaultValue={
+                                            patient?.current_medications ?? ''
+                                        }
                                         placeholder="List any medications you are currently taking"
                                         rows={3}
                                     />
-                                    <InputError message={errors.medications} />
-                                </div>
-
-                                <div className="rounded-lg border p-4">
-                                    <h3 className="mb-4 font-semibold">
-                                        Emergency Contact
-                                    </h3>
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="emergency_contact_name">
-                                                Name
-                                            </Label>
-                                            <Input
-                                                id="emergency_contact_name"
-                                                name="emergency_contact_name"
-                                                defaultValue={
-                                                    medicalInfo?.emergency_contact_name
-                                                }
-                                                placeholder="Emergency contact name"
-                                            />
-                                            <InputError
-                                                message={
-                                                    errors.emergency_contact_name
-                                                }
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="emergency_contact_phone">
-                                                Phone Number
-                                            </Label>
-                                            <Input
-                                                id="emergency_contact_phone"
-                                                type="tel"
-                                                name="emergency_contact_phone"
-                                                defaultValue={
-                                                    medicalInfo?.emergency_contact_phone
-                                                }
-                                                placeholder="+44 20 1234 5678"
-                                            />
-                                            <InputError
-                                                message={
-                                                    errors.emergency_contact_phone
-                                                }
-                                            />
-                                        </div>
-                                    </div>
+                                    <InputError
+                                        message={errors.current_medications}
+                                    />
                                 </div>
 
                                 <div className="flex items-center gap-4">

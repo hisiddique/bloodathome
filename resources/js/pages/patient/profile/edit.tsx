@@ -5,9 +5,27 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type BreadcrumbItem, type User } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
+
+interface Patient {
+    date_of_birth?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    town_city?: string | null;
+    postcode?: string | null;
+}
+
+interface EditProfileProps {
+    user: User & {
+        first_name: string;
+        middle_name?: string | null;
+        last_name: string;
+        phone?: string | null;
+    };
+    patient?: Patient | null;
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -16,9 +34,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function EditProfile() {
-    const { auth } = usePage<SharedData>().props;
-
+export default function EditProfile({ user, patient }: EditProfileProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Profile" />
@@ -42,18 +58,58 @@ export default function EditProfile() {
                             <>
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="name">Full Name</Label>
+                                        <Label htmlFor="first_name">
+                                            First Name
+                                        </Label>
                                         <Input
-                                            id="name"
-                                            name="name"
-                                            defaultValue={auth.user.name}
+                                            id="first_name"
+                                            name="first_name"
+                                            defaultValue={user.first_name}
                                             required
-                                            autoComplete="name"
-                                            placeholder="John Doe"
+                                            autoComplete="given-name"
+                                            placeholder="John"
                                         />
-                                        <InputError message={errors.name} />
+                                        <InputError
+                                            message={errors.first_name}
+                                        />
                                     </div>
 
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="last_name">
+                                            Last Name
+                                        </Label>
+                                        <Input
+                                            id="last_name"
+                                            name="last_name"
+                                            defaultValue={user.last_name}
+                                            required
+                                            autoComplete="family-name"
+                                            placeholder="Doe"
+                                        />
+                                        <InputError
+                                            message={errors.last_name}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="middle_name">
+                                        Middle Name{' '}
+                                        <span className="text-muted-foreground">
+                                            (optional)
+                                        </span>
+                                    </Label>
+                                    <Input
+                                        id="middle_name"
+                                        name="middle_name"
+                                        defaultValue={user.middle_name ?? ''}
+                                        autoComplete="additional-name"
+                                        placeholder="Middle name"
+                                    />
+                                    <InputError message={errors.middle_name} />
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2">
                                     <div className="grid gap-2">
                                         <Label htmlFor="email">
                                             Email Address
@@ -61,17 +117,16 @@ export default function EditProfile() {
                                         <Input
                                             id="email"
                                             type="email"
-                                            name="email"
-                                            defaultValue={auth.user.email}
-                                            required
+                                            defaultValue={user.email}
+                                            disabled
                                             autoComplete="email"
-                                            placeholder="john@example.com"
+                                            className="cursor-not-allowed opacity-60"
                                         />
-                                        <InputError message={errors.email} />
+                                        <p className="text-xs text-muted-foreground">
+                                            Email cannot be changed here.
+                                        </p>
                                     </div>
-                                </div>
 
-                                <div className="grid gap-4 md:grid-cols-2">
                                     <div className="grid gap-2">
                                         <Label htmlFor="phone">
                                             Phone Number
@@ -80,44 +135,118 @@ export default function EditProfile() {
                                             id="phone"
                                             type="tel"
                                             name="phone"
+                                            defaultValue={user.phone ?? ''}
+                                            required
                                             autoComplete="tel"
                                             placeholder="+44 20 1234 5678"
                                         />
                                         <InputError message={errors.phone} />
                                     </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="date_of_birth">
-                                            Date of Birth
-                                        </Label>
-                                        <DatePicker
-                                            id="date_of_birth"
-                                            name="date_of_birth"
-                                            variant="dob"
-                                            placeholder="Select date of birth"
-                                        />
-                                        <InputError
-                                            message={errors.date_of_birth}
-                                        />
-                                    </div>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="gender">Gender</Label>
-                                    <select
-                                        id="gender"
-                                        name="gender"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <option value="">Select gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                        <option value="prefer_not_to_say">
-                                            Prefer not to say
-                                        </option>
-                                    </select>
-                                    <InputError message={errors.gender} />
+                                    <Label htmlFor="date_of_birth">
+                                        Date of Birth
+                                    </Label>
+                                    <DatePicker
+                                        id="date_of_birth"
+                                        name="date_of_birth"
+                                        variant="dob"
+                                        placeholder="Select date of birth"
+                                        defaultValue={
+                                            patient?.date_of_birth ?? undefined
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.date_of_birth}
+                                    />
+                                </div>
+
+                                <div className="rounded-lg border p-4">
+                                    <h3 className="mb-4 font-semibold">
+                                        Address
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="address_line1">
+                                                Address Line 1
+                                            </Label>
+                                            <Input
+                                                id="address_line1"
+                                                name="address_line1"
+                                                defaultValue={
+                                                    patient?.address_line1 ?? ''
+                                                }
+                                                required
+                                                autoComplete="address-line1"
+                                                placeholder="123 Main Street"
+                                            />
+                                            <InputError
+                                                message={errors.address_line1}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="address_line2">
+                                                Address Line 2{' '}
+                                                <span className="text-muted-foreground">
+                                                    (optional)
+                                                </span>
+                                            </Label>
+                                            <Input
+                                                id="address_line2"
+                                                name="address_line2"
+                                                defaultValue={
+                                                    patient?.address_line2 ?? ''
+                                                }
+                                                autoComplete="address-line2"
+                                                placeholder="Flat 4"
+                                            />
+                                            <InputError
+                                                message={errors.address_line2}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="town_city">
+                                                    Town / City
+                                                </Label>
+                                                <Input
+                                                    id="town_city"
+                                                    name="town_city"
+                                                    defaultValue={
+                                                        patient?.town_city ?? ''
+                                                    }
+                                                    required
+                                                    autoComplete="address-level2"
+                                                    placeholder="London"
+                                                />
+                                                <InputError
+                                                    message={errors.town_city}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="postcode">
+                                                    Postcode
+                                                </Label>
+                                                <Input
+                                                    id="postcode"
+                                                    name="postcode"
+                                                    defaultValue={
+                                                        patient?.postcode ?? ''
+                                                    }
+                                                    required
+                                                    autoComplete="postal-code"
+                                                    placeholder="SW1A 1AA"
+                                                />
+                                                <InputError
+                                                    message={errors.postcode}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center gap-4">

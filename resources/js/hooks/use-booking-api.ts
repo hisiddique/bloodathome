@@ -1,5 +1,13 @@
+import axios from 'axios';
 import { type Service, type Provider, type TimeSlot, type BookingDraft, type CollectionType } from '@/types';
 import { type BookingLocation, type PatientDetailsData } from '@/contexts/booking-context';
+
+export class BookingApiError extends Error {
+    constructor(message: string, public readonly errorCode?: string) {
+        super(message);
+        this.name = 'BookingApiError';
+    }
+}
 
 interface SearchProvidersParams {
     lat: number;
@@ -13,6 +21,7 @@ interface SearchProvidersParams {
 interface CreateDraftData {
     collection_type: string;
     is_nhs_test: boolean;
+    is_guest_booking: boolean;
     service_ids: string[];
     location?: {
         postcode: string;
@@ -61,11 +70,6 @@ interface ApplyPromoCodeResponse {
     code: string;
 }
 
-function getCsrfToken(): string {
-    const meta = document.querySelector('meta[name="csrf-token"]');
-    return meta?.getAttribute('content') || '';
-}
-
 export function useBookingApi() {
     const fetchServices = async (collectionType?: string): Promise<Service[]> => {
         try {
@@ -73,18 +77,7 @@ export function useBookingApi() {
                 ? `/api/services?collection_type=${collectionType}`
                 : '/api/services';
 
-            const response = await fetch(url, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch services');
-            }
-
-            const data = await response.json();
+            const { data } = await axios.get(url);
             return data.services || data;
         } catch (error) {
             console.error('Error fetching services:', error);
@@ -94,18 +87,7 @@ export function useBookingApi() {
 
     const fetchCollectionTypes = async (): Promise<CollectionType[]> => {
         try {
-            const response = await fetch('/api/collection-types', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch collection types');
-            }
-
-            const data = await response.json();
+            const { data } = await axios.get('/api/collection-types');
             return data.collectionTypes || data;
         } catch (error) {
             console.error('Error fetching collection types:', error);
@@ -115,57 +97,33 @@ export function useBookingApi() {
 
     const searchProviders = async (params: SearchProvidersParams): Promise<Provider[]> => {
         try {
-            const response = await fetch('/api/providers/search', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-                body: JSON.stringify({
-                    latitude: params.lat,
-                    longitude: params.lng,
-                    service_ids: params.service_ids,
-                    collection_type: params.collection_type,
-                    radius_km: params.radius_km,
-                }),
+            const { data: responseData } = await axios.post('/api/providers/search', {
+                latitude: params.lat,
+                longitude: params.lng,
+                service_ids: params.service_ids,
+                collection_type: params.collection_type,
+                radius_km: params.radius_km,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Provider search failed:', response.status, errorData);
+            return responseData.data?.providers || responseData.providers || [];
+        } catch (error: any) {
+            console.error('Error searching providers:', error);
 
-                // For 422 validation errors, build a readable message from field errors
-                if (response.status === 422 && errorData.errors) {
-                    const fieldErrors = Object.values(errorData.errors).flat().join('. ');
-                    throw new Error(fieldErrors || errorData.message || 'Validation failed');
-                }
-
-                throw new Error(errorData.message || `Failed to search providers (${response.status})`);
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                const fieldErrors = Object.values(error.response.data.errors).flat().join('. ');
+                throw new Error(fieldErrors || error.response.data.message || 'Validation failed');
             }
 
-            const responseData = await response.json();
-            return responseData.data?.providers || responseData.providers || [];
-        } catch (error) {
-            console.error('Error searching providers:', error);
-            throw error;
+            throw new Error(error.response?.data?.message || 'Failed to search providers');
         }
     };
 
     const getProviderAvailability = async (providerId: string, date: string): Promise<TimeSlot[]> => {
         try {
-            const response = await fetch(`/api/providers/${providerId}/availability?date=${date}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
+            const { data: responseData } = await axios.get(`/api/providers/${providerId}/availability`, {
+                params: { date },
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch provider availability');
-            }
-
-            const responseData = await response.json();
             return responseData.data?.slots || responseData.slots || [];
         } catch (error) {
             console.error('Error fetching provider availability:', error);
@@ -175,144 +133,93 @@ export function useBookingApi() {
 
     const createDraft = async (data: CreateDraftData): Promise<BookingDraft> => {
         try {
-            const response = await fetch('/api/booking-drafts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-                body: JSON.stringify(data),
-            });
+            const { data: responseData } = await axios.post('/api/booking-drafts', data);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to create booking draft');
-            }
-
-            const responseData = await response.json();
             return {
                 id: responseData.data?.booking_id,
                 session_token: responseData.data?.draft_token,
                 total_amount: responseData.data?.total_cost,
                 expires_at: responseData.data?.expires_at,
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating booking draft:', error);
-            throw error;
+            const responseData = error.response?.data;
+            const errors = responseData?.errors;
+            if (errors) {
+                const firstError = Object.values(errors).flat()[0] as string;
+                throw new BookingApiError(firstError || 'Failed to create booking draft');
+            }
+            throw new BookingApiError(
+                responseData?.message || 'Failed to create booking draft',
+                responseData?.error_code,
+            );
         }
     };
 
     const updateDraft = async (draftId: string, data: Partial<CreateDraftData>): Promise<BookingDraft> => {
         try {
-            const response = await fetch(`/api/booking-drafts/${draftId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-                body: JSON.stringify(data),
-            });
+            const { data: responseData } = await axios.patch(`/api/booking-drafts/${draftId}`, data);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update booking draft');
-            }
-
-            const responseData = await response.json();
             return responseData.draft || responseData;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating booking draft:', error);
-            throw error;
+            throw new Error(error.response?.data?.message || 'Failed to update booking draft');
         }
     };
 
     const createPaymentIntent = async (draftId: string): Promise<PaymentIntentResponse> => {
         try {
-            const response = await fetch('/api/booking-drafts/payment-intent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-                body: JSON.stringify({ booking_id: draftId }),
+            const { data: responseData } = await axios.post('/api/booking-drafts/payment-intent', {
+                booking_id: draftId,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to create payment intent');
-            }
-
-            const responseData = await response.json();
             return {
                 clientSecret: responseData.data?.client_secret,
                 amount: responseData.data?.amount,
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating payment intent:', error);
-            throw error;
+            const responseData = error.response?.data;
+            throw new BookingApiError(
+                responseData?.message || 'Failed to create payment intent',
+                responseData?.error_code,
+            );
         }
     };
 
     const applyPromoCode = async (draftId: string, code: string): Promise<ApplyPromoCodeResponse> => {
         try {
-            const response = await fetch(`/api/booking-drafts/${draftId}/promo-code`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-                body: JSON.stringify({ code }),
-            });
+            const { data } = await axios.post(`/api/booking-drafts/${draftId}/promo-code`, { code });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Invalid promo code');
-            }
-
-            const data = await response.json();
             return {
                 discount: data.discount,
                 newTotal: data.newTotal,
                 code: data.code,
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error applying promo code:', error);
-            throw error;
+            throw new Error(error.response?.data?.message || 'Invalid promo code');
         }
     };
 
     const confirmBooking = async (paymentIntentId: string, draftId: string): Promise<ConfirmBookingResponse> => {
         try {
-            const response = await fetch('/api/bookings/confirm', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-                body: JSON.stringify({
-                    payment_intent_id: paymentIntentId,
-                    draft_id: draftId,
-                }),
+            const { data: responseData } = await axios.post('/api/bookings/confirm', {
+                payment_intent_id: paymentIntentId,
+                draft_id: draftId,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to confirm booking');
-            }
-
-            const responseData = await response.json();
             return {
                 bookingId: responseData.data?.booking?.id,
                 confirmationNumber: responseData.data?.confirmation_number,
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error confirming booking:', error);
-            throw error;
+            const responseData = error.response?.data;
+            throw new BookingApiError(
+                responseData?.message || 'Failed to confirm booking',
+                responseData?.error_code,
+            );
         }
     };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import axios from 'axios';
 import { Calendar as CalendarIcon, MapPin, Navigation, Map, Loader2, ChevronDown, ChevronUp, Home, Check } from 'lucide-react';
 import { StepBackLink } from './step-back-link';
 import { format } from 'date-fns';
@@ -140,7 +141,7 @@ export function StepLocation({ userAddresses = [], googleMapsKey, isAuthenticate
             postcode: postcode,
             lat,
             lng,
-            address: `${city}`,
+            address: [line1, line2, city, postcode].filter(Boolean).join(', '),
             addressLine1: line1,
             addressLine2: line2,
             townCity: city,
@@ -403,14 +404,17 @@ export function StepLocation({ userAddresses = [], googleMapsKey, isAuthenticate
             const data = await response.json();
 
             if (data.status === 200 && data.result) {
+                const resolvedLine1 = line1 || '';
+                const resolvedLine2 = line2 || '';
+                const resolvedCity = city || data.result.admin_district || '';
                 const newLocation = {
                     postcode: postcode.toUpperCase(),
                     lat: data.result.latitude,
                     lng: data.result.longitude,
-                    address: `${data.result.admin_district}, ${data.result.region}`,
-                    addressLine1: line1 || '',
-                    addressLine2: line2 || '',
-                    townCity: city || '',
+                    address: [resolvedLine1, resolvedLine2, resolvedCity, postcode.toUpperCase()].filter(Boolean).join(', '),
+                    addressLine1: resolvedLine1,
+                    addressLine2: resolvedLine2,
+                    townCity: resolvedCity,
                 };
                 setLocation(newLocation);
                 setMapCenter({ lat: newLocation.lat, lng: newLocation.lng });
@@ -549,28 +553,18 @@ export function StepLocation({ userAddresses = [], googleMapsKey, isAuthenticate
         if (saveAddress && addressLabel.trim() && isAuthenticated && addressMode === 'new') {
             setIsSavingAddress(true);
             try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-                await fetch('/api/addresses', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        label: addressLabel.trim(),
-                        address_line1: addressLine1.trim(),
-                        address_line2: addressLine2.trim() || null,
-                        town_city: townCity.trim(),
-                        postcode: location.postcode,
-                    }),
+                await axios.post('/api/addresses', {
+                    label: addressLabel.trim(),
+                    address_line1: addressLine1.trim(),
+                    address_line2: addressLine2.trim() || null,
+                    town_city: townCity.trim(),
+                    postcode: location.postcode,
                 });
 
                 toast.success('Address saved for future bookings');
             } catch (error) {
-                // Don't block the flow
                 console.error('Failed to save address:', error);
+                toast.error('Could not save address for future use, but you can continue.');
             } finally {
                 setIsSavingAddress(false);
             }
@@ -613,8 +607,7 @@ export function StepLocation({ userAddresses = [], googleMapsKey, isAuthenticate
             setNoProvidersError('No providers available in your area. Please try a different location or check back later.');
         } catch (error) {
             console.error('Error checking providers:', error);
-            // On error, proceed anyway - the provider step will handle it
-            setStep('provider');
+            toast.error('Could not find providers. Please try again.');
         } finally {
             setIsCheckingProviders(false);
         }

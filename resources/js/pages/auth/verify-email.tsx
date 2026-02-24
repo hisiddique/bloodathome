@@ -11,11 +11,16 @@ import axios from "axios";
 
 interface VerifyEmailProps {
     status?: string;
+    pendingEmail?: string;
 }
 
-export default function VerifyEmail({ status }: VerifyEmailProps) {
+export default function VerifyEmail({ status, pendingEmail }: VerifyEmailProps) {
     const { props } = usePage();
     const user = props.auth?.user as { email?: string } | undefined;
+    // Detect pending registration from prop OR URL path (fallback for stale frontend)
+    const isPendingRegistration = !!pendingEmail || window.location.pathname === '/email/verify-pending';
+    const displayEmail = pendingEmail || user?.email;
+
     const [otpSent, setOtpSent] = useState(!!status);
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
     const [sending, setSending] = useState(false);
@@ -44,7 +49,10 @@ export default function VerifyEmail({ status }: VerifyEmailProps) {
         setError(null);
 
         try {
-            const response = await axios.post("/email/send-otp");
+            const endpoint = isPendingRegistration
+                ? "/email/resend-pending-otp"
+                : "/email/send-otp";
+            const response = await axios.post(endpoint);
 
             if (response.data.success) {
                 setOtpSent(true);
@@ -79,7 +87,10 @@ export default function VerifyEmail({ status }: VerifyEmailProps) {
         setError(null);
 
         try {
-            const response = await axios.post("/email/verify-otp", {
+            const endpoint = isPendingRegistration
+                ? "/email/verify-pending-otp"
+                : "/email/verify-otp";
+            const response = await axios.post(endpoint, {
                 otp: otpValue,
             });
 
@@ -175,7 +186,7 @@ export default function VerifyEmail({ status }: VerifyEmailProps) {
                                 Enter the 6-digit code sent to:
                                 <br />
                                 <span className="font-medium text-foreground">
-                                    {user?.email}
+                                    {displayEmail}
                                 </span>
                             </>
                         ) : (
@@ -183,7 +194,7 @@ export default function VerifyEmail({ status }: VerifyEmailProps) {
                                 We'll send a 6-digit verification code to:
                                 <br />
                                 <span className="font-medium text-foreground">
-                                    {user?.email}
+                                    {displayEmail}
                                 </span>
                             </>
                         )}
@@ -210,14 +221,23 @@ export default function VerifyEmail({ status }: VerifyEmailProps) {
                             </Button>
 
                             <div className="pt-4">
-                                <Link
-                                    href={logout()}
-                                    method="post"
-                                    as="button"
-                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    Use a different email
-                                </Link>
+                                {isPendingRegistration ? (
+                                    <Link
+                                        href="/register"
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Cancel
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        href={logout()}
+                                        method="post"
+                                        as="button"
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Use a different email
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -296,14 +316,23 @@ export default function VerifyEmail({ status }: VerifyEmailProps) {
                             </div>
 
                             <div className="pt-4 border-t">
-                                <Link
-                                    href={logout()}
-                                    method="post"
-                                    as="button"
-                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    Use a different email
-                                </Link>
+                                {isPendingRegistration ? (
+                                    <Link
+                                        href="/register"
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Cancel
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        href={logout()}
+                                        method="post"
+                                        as="button"
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Use a different email
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     )}

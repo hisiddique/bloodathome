@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\EmailVerificationOtpController;
+use App\Http\Controllers\Auth\PendingRegistrationController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingDispatchController;
 use App\Http\Controllers\ChatDispatchController;
@@ -38,11 +39,24 @@ Route::get('/faq', fn () => Inertia::render('faq'))->name('faq');
 Route::redirect('/search', '/book')->name('search.index');
 Route::get('/become-phlebotomist', [ProviderRegistrationController::class, 'create'])->name('phlebotomist.register');
 Route::post('/become-phlebotomist', [ProviderRegistrationController::class, 'store'])->name('phlebotomist.store');
+Route::get('/become-phlebotomist/complete', [ProviderRegistrationController::class, 'complete'])->middleware('auth')->name('phlebotomist.register.complete');
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
 Route::get('/clinics', [ClinicLocationController::class, 'index'])->name('clinics.index');
 Route::get('/clinics/{clinicLocation}', [ClinicLocationController::class, 'show'])->name('clinics.show');
 
-// Email verification OTP routes
+// Pending registration routes (before OTP verification)
+Route::middleware('guest')->group(function () {
+    Route::post('/register', [PendingRegistrationController::class, 'store'])->name('register.store');
+    Route::get('/email/verify-pending', [PendingRegistrationController::class, 'showVerification'])->name('verification.pending');
+    Route::post('/email/verify-pending-otp', [PendingRegistrationController::class, 'verifyOtp'])
+        ->middleware('throttle:10,1')
+        ->name('verification.pending.verify');
+    Route::post('/email/resend-pending-otp', [PendingRegistrationController::class, 'resendOtp'])
+        ->middleware('throttle:3,15')
+        ->name('verification.pending.resend');
+});
+
+// Email verification OTP routes (authenticated users)
 Route::middleware('auth')->group(function () {
     Route::post('/email/send-otp', [EmailVerificationOtpController::class, 'sendOtp'])
         ->middleware('throttle:3,15')
@@ -54,6 +68,26 @@ Route::middleware('auth')->group(function () {
 // Booking routes
 Route::get('/book', [BookingController::class, 'wizard'])->name('booking.wizard');
 Route::post('/booking', [BookingController::class, 'store'])->middleware('auth')->name('booking.store');
+
+// Booking API routes (in web.php for session-based auth detection)
+Route::prefix('api')->group(function () {
+    Route::post('booking-drafts', [\App\Http\Controllers\Api\BookingApiController::class, 'createDraft'])
+        ->middleware('throttle:10,1');
+    Route::post('booking-drafts/payment-intent', [\App\Http\Controllers\Api\BookingApiController::class, 'createPaymentIntent'])
+        ->middleware('throttle:10,1');
+    Route::post('bookings/confirm', [\App\Http\Controllers\Api\BookingApiController::class, 'confirmBooking'])
+        ->middleware('throttle:10,1');
+
+    // Authenticated booking endpoints
+    Route::middleware('auth')->group(function () {
+        Route::patch('booking-drafts/{booking}', [\App\Http\Controllers\Api\BookingApiController::class, 'updateDraft']);
+        Route::post('booking-drafts/{booking}/promo-code', [\App\Http\Controllers\Api\BookingApiController::class, 'applyPromoCode']);
+        Route::post('addresses', [\App\Http\Controllers\Api\BookingApiController::class, 'saveAddress']);
+        Route::post('dependents', [\App\Http\Controllers\Api\BookingApiController::class, 'storeDependent']);
+        Route::patch('nhs-number', [\App\Http\Controllers\Api\BookingApiController::class, 'saveNhsNumber']);
+        Route::patch('dependents/{dependent}/nhs-number', [\App\Http\Controllers\Api\BookingApiController::class, 'saveDependentNhsNumber']);
+    });
+});
 
 // Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {

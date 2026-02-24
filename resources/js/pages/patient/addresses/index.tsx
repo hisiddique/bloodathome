@@ -16,8 +16,10 @@ interface Address {
     label: string;
     address_line1: string;
     address_line2?: string;
-    city: string;
+    town_city: string;
     postcode: string;
+    latitude?: number;
+    longitude?: number;
     is_default: boolean;
 }
 
@@ -99,7 +101,7 @@ export default function Addresses({ addresses = [] }: AddressesProps) {
                                             <p>{address.address_line2}</p>
                                         )}
                                         <p>
-                                            {address.city}, {address.postcode}
+                                            {address.town_city}, {address.postcode}
                                         </p>
                                     </div>
                                     <div className="mt-4 flex gap-2">

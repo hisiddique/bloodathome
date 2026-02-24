@@ -27,7 +27,6 @@ class UserFactory extends Factory
             'first_name' => fake()->firstName(),
             'middle_name' => fake()->optional(0.3)->firstName(),
             'last_name' => fake()->lastName(),
-            'date_of_birth' => fake()->dateTimeBetween('-70 years', '-18 years')->format('Y-m-d'),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->optional()->regexify('0[1-9][0-9]{9}'), // UK phone format
             'profile_image' => fake()->optional(0.4)->imageUrl(200, 200, 'people'),
@@ -65,6 +64,10 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [])
             ->afterCreating(function ($user) {
                 $user->assignRole('patient');
+                $user->patient()->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['date_of_birth' => fake()->dateTimeBetween('-70 years', '-18 years')->format('Y-m-d')]
+                );
             });
     }
 
